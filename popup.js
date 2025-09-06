@@ -105,7 +105,12 @@ async function checkConnectionStatus() {
   const connectionStatus = document.getElementById('connectionStatus');
   
   try {
-    const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
+    // Add timeout to prevent hanging
+    const response = await Promise.race([
+      chrome.runtime.sendMessage({ type: 'GET_STATS' }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+    ]);
+    
     console.log('Connection status response:', response);
     
     if (response && response.success) {
@@ -131,8 +136,18 @@ async function init() {
 
   renderItems(await localAdapter.getAll());
   
-  // Check connection status
-  await checkConnectionStatus();
+  // Check connection status (don't await to prevent blocking)
+  checkConnectionStatus().catch(error => {
+    console.log('Connection status check failed:', error);
+    // Set a default status if connection check fails
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusText = document.getElementById('statusText');
+    const connectionStatus = document.getElementById('connectionStatus');
+    
+    statusIndicator.textContent = '⚪';
+    statusText.textContent = 'Checking...';
+    connectionStatus.className = 'connection-status';
+  });
 
   document.getElementById('saveBtn').onclick = async () => {
     const saveBtn = document.getElementById('saveBtn');
