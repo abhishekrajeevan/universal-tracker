@@ -216,7 +216,86 @@ async function init() {
   };
 
   document.getElementById('syncBtn').onclick = async () => {
-    chrome.runtime.sendMessage({ type: 'SYNC_NOW' });
+    const syncBtn = document.getElementById('syncBtn');
+    const originalText = syncBtn.innerHTML;
+    
+    syncBtn.innerHTML = '⏳ Syncing...';
+    syncBtn.style.pointerEvents = 'none';
+    
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'SYNC_NOW' });
+      if (response.success) {
+        syncBtn.innerHTML = '✅ Synced!';
+        setTimeout(() => {
+          syncBtn.innerHTML = originalText;
+          syncBtn.style.pointerEvents = 'auto';
+        }, 1500);
+      } else {
+        throw new Error(response.error || 'Sync failed');
+      }
+    } catch (error) {
+      syncBtn.innerHTML = '❌ Error';
+      setTimeout(() => {
+        syncBtn.innerHTML = originalText;
+        syncBtn.style.pointerEvents = 'auto';
+      }, 2000);
+    }
+  };
+
+  document.getElementById('archiveBtn').onclick = async () => {
+    const archiveBtn = document.getElementById('archiveBtn');
+    const originalText = archiveBtn.innerHTML;
+    
+    archiveBtn.innerHTML = '⏳ Archiving...';
+    archiveBtn.style.pointerEvents = 'none';
+    
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'TRIGGER_ARCHIVE' });
+      if (response.success) {
+        archiveBtn.innerHTML = '✅ Archived!';
+        setTimeout(() => {
+          archiveBtn.innerHTML = originalText;
+          archiveBtn.style.pointerEvents = 'auto';
+        }, 1500);
+      } else {
+        throw new Error(response.error || 'Archive failed');
+      }
+    } catch (error) {
+      archiveBtn.innerHTML = '❌ Error';
+      setTimeout(() => {
+        archiveBtn.innerHTML = originalText;
+        archiveBtn.style.pointerEvents = 'auto';
+      }, 2000);
+    }
+  };
+
+  document.getElementById('statsBtn').onclick = async () => {
+    const statsBtn = document.getElementById('statsBtn');
+    const originalText = statsBtn.innerHTML;
+    
+    statsBtn.innerHTML = '⏳ Loading...';
+    statsBtn.style.pointerEvents = 'none';
+    
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
+      if (response.success) {
+        const stats = response.stats;
+        alert(`📊 Storage Statistics:\n\n` +
+              `Active Items: ${stats.active}\n` +
+              `Archived Items: ${stats.archived}\n` +
+              `Total Items: ${stats.total}\n` +
+              `Archive Sheets: ${stats.archiveSheets}`);
+        
+        statsBtn.innerHTML = originalText;
+        statsBtn.style.pointerEvents = 'auto';
+      } else {
+        throw new Error(response.error || 'Failed to get stats');
+      }
+    } catch (error) {
+      alert(`Error getting statistics: ${error.message}`);
+      statsBtn.innerHTML = originalText;
+      statsBtn.style.pointerEvents = 'auto';
+    }
   };
 }
 

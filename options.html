@@ -181,7 +181,15 @@
         
         <div class="content">
           <div class="description">
-            Configure your Universal Tracker settings. Paste your <strong>Apps Script Web App Base URL</strong> (without trailing slash). The extension will call <code>/bulkUpsert</code> for syncing items to your Google Sheets.
+            Configure your Universal Tracker settings. Paste your <strong>Apps Script Web App Base URL</strong> (without trailing slash). The enhanced system includes:
+            <br><br>
+            • <strong>Automatic archiving</strong> - Old items are moved to separate sheets to keep active data fast
+            <br>
+            • <strong>Batch processing</strong> - Improved performance with larger batch sizes
+            <br>
+            • <strong>Multiple sheets</strong> - Organized storage with monthly archives
+            <br>
+            • <strong>Statistics tracking</strong> - Monitor your storage usage and item counts
           </div>
           
           <div class="form-group">
@@ -199,6 +207,22 @@
           <button class="btn" id="saveBtn">
             💾 Save Settings
           </button>
+          
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+            <h3 style="margin: 0 0 15px 0; color: #374151; font-size: 16px;">📊 Storage Management</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn" id="testConnectionBtn" style="background: #10b981;">
+                🔗 Test Connection
+              </button>
+              <button class="btn" id="viewStatsBtn" style="background: #3b82f6;">
+                📊 View Statistics
+              </button>
+              <button class="btn" id="triggerArchiveBtn" style="background: #f59e0b;">
+                📦 Archive Now
+              </button>
+            </div>
+          </div>
+          
           <div id="status"></div>
         </div>
       </div>

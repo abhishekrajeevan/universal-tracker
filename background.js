@@ -46,7 +46,7 @@ async function flushOnce(){
   const opts = (await getLocal(OPTS_KEY)) || {};
   const base = opts.apps_script_url;
   if (!base) return;
-  const batch = await queueAdapter.takeBatch(50);
+  const batch = await queueAdapter.takeBatch(100); // Increased batch size
   if (!batch.length) return;
 
   try {
@@ -56,7 +56,11 @@ async function flushOnce(){
       body: JSON.stringify({ items: batch })
     });
     if (!resp.ok) throw new Error("HTTP " + resp.status);
+    
+    const result = await resp.json();
+    console.log(`Synced ${result.upserted} items (${result.updated} updated, ${result.inserted} inserted)`);
   } catch (e) {
+    console.error("Sync failed:", e);
     // put items back if failed
     const q = (await getLocal(QUEUE_KEY)) || [];
     await setLocal(QUEUE_KEY, batch.concat(q));
@@ -78,12 +82,58 @@ async function syncLoop(){
 }
 
 // messages from popup
-chrome.runtime.onMessage.addListener(async (msg) => {
+chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
   if (msg?.type === "SYNC_NOW") {
-    try { await syncLoop(); } catch(e) {}
+    try { 
+      await syncLoop(); 
+      sendResponse({success: true});
+    } catch(e) {
+      sendResponse({success: false, error: e.message});
+    }
+  } else if (msg?.type === "TRIGGER_ARCHIVE") {
+    try {
+      const opts = (await getLocal(OPTS_KEY)) || {};
+      const base = opts.apps_script_url;
+      if (!base) {
+        sendResponse({success: false, error: "No Apps Script URL configured"});
+        return;
+      }
+      
+      const resp = await fetch(base + "/triggerArchive", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"}
+      });
+      
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      const result = await resp.json();
+      sendResponse({success: true, message: result.message});
+    } catch(e) {
+      sendResponse({success: false, error: e.message});
+    }
+  } else if (msg?.type === "GET_STATS") {
+    try {
+      const opts = (await getLocal(OPTS_KEY)) || {};
+      const base = opts.apps_script_url;
+      if (!base) {
+        sendResponse({success: false, error: "No Apps Script URL configured"});
+        return;
+      }
+      
+      const resp = await fetch(base + "/getStats", {
+        method: "GET"
+      });
+      
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      const result = await resp.json();
+      sendResponse({success: true, stats: result});
+    } catch(e) {
+      sendResponse({success: false, error: e.message});
+    }
   } else if (msg?.type === "UPSERT_ITEM") {
     // not used in this scaffold (popup writes to local + queue directly)
   }
+  
+  return true; // Keep message channel open for async response
 });
 
 // periodic alarm for autosync
