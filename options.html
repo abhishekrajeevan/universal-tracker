@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Universal Tracker · Options</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 20px; max-width: 720px; }
+      label { display:block; font-size:13px; color:#555; margin:16px 0 6px; }
+      input[type="text"], input[type="number"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+      .btn { margin-top: 12px; padding: 10px 12px; border: none; background:#1a73e8; color:#fff; border-radius: 8px; cursor: pointer; }
+      .small { font-size: 13px; color: #666; }
+      code { background:#f4f6f8; padding:2px 6px; border-radius:4px; }
+      .ok { color: #188038; }
+      .warn { color: #b80606; }
+    </style>
+  </head>
+  <body>
+    <h1>Universal Tracker · Options</h1>
+    <p class="small">
+      Paste your <b>Apps Script Web App Base URL</b> (without trailing slash). The extension will call
+      <code>/bulkUpsert</code> for syncing items.
+    </p>
+    <label>Apps Script Base URL</label>
+    <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/AKfycbx.../exec" />
+
+    <label>Auto-sync interval (minutes)</label>
+    <input type="number" id="autosync" value="10" min="5" step="1" />
+
+    <button class="btn" id="saveBtn">Save</button>
+    <div id="status"></div>
+
+    <script src="shared/utils.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

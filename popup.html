@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Universal Tracker</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 12px; width: 320px; }
+      h1 { font-size: 16px; margin: 0 0 8px; }
+      .row { margin-bottom: 8px; }
+      label { display:block; font-size:12px; color:#555; margin-bottom:4px; }
+      input[type="text"], textarea, select { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 6px; }
+      textarea { min-height: 48px; }
+      .btn { padding: 8px 10px; border-radius: 8px; border: none; cursor: pointer; }
+      .btn-primary { background: #1a73e8; color: white; }
+      .btn-secondary { background: #eee; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .list { margin-top: 12px; border-top:1px solid #eee; max-height: 260px; overflow:auto; }
+      .item { padding:8px 0; border-bottom:1px solid #f2f2f2; }
+      .title { font-weight: 600; font-size: 14px; }
+      .meta { font-size: 12px; color: #555; }
+      .actions { margin-top: 6px; display:flex; gap:6px; }
+      .pill { font-size:11px; background:#f4f6f8; padding:2px 6px; border-radius:999px; }
+      .small { font-size: 12px; color:#777; }
+      .footer { display:flex; justify-content: space-between; align-items:center; margin-top:10px; }
+      .link { color:#1a73e8; text-decoration:none; font-size:12px; }
+    </style>
+  </head>
+  <body>
+    <h1>Universal Tracker</h1>
+
+    <div class="row">
+      <div class="small" id="pageMeta">Capturing current tab…</div>
+    </div>
+
+    <div class="row">
+      <label>Title</label>
+      <input type="text" id="title" />
+    </div>
+
+    <div class="grid">
+      <div>
+        <label>Status</label>
+        <select id="status">
+          <option value="todo">To Do</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div>
+        <label>Category</label>
+        <select id="category">
+          <option>Movie</option>
+          <option>TV</option>
+          <option>Trailer</option>
+          <option>Video</option>
+          <option>Blog</option>
+          <option>Podcast</option>
+          <option>Book</option>
+          <option>Course</option>
+          <option>Game</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <label>Tags (comma-separated)</label>
+      <input type="text" id="tags" placeholder="netflix, friend recommended" />
+    </div>
+
+    <div class="row">
+      <label>Notes</label>
+      <textarea id="notes" placeholder="Add a note…"></textarea>
+    </div>
+
+    <div class="grid">
+      <button id="saveBtn" class="btn btn-primary">Save</button>
+      <button id="markDoneBtn" class="btn btn-secondary">Mark Done</button>
+    </div>
+
+    <div class="footer">
+      <a class="link" id="syncBtn" href="#">Sync</a>
+      <div>
+        <a class="link" id="exportBtn" href="#">Export</a> ·
+        <a class="link" id="importBtn" href="#">Import</a>
+      </div>
+    </div>
+
+    <div class="list" id="list"></div>
+
+    <script src="shared/utils.js"></script>
+    <script src="shared/schema.js"></script>
+    <script src="shared/adapters.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
