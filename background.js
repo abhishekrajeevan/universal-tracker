@@ -164,10 +164,11 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
       let result;
       try {
         result = JSON.parse(responseText);
-      } catch (e) {
-        console.error('GET_STATS: Failed to parse JSON:', responseText);
-        throw new Error("Invalid JSON response: " + responseText.substring(0, 200));
-      }
+    } catch (e) {
+      console.error('GET_STATS: Failed to parse JSON:', responseText);
+      console.error('GET_STATS: Full response:', responseText);
+      throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
+    }
       
       sendResponse({success: true, stats: result});
     } catch(e) {
