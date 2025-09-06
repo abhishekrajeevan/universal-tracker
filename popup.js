@@ -66,11 +66,14 @@ async function init() {
   renderItems(await localAdapter.getAll());
 
   document.getElementById('saveBtn').onclick = async () => {
+    const selectedCategory = document.getElementById('category').value;
+    const finalUrl = (selectedCategory === "Movie" || selectedCategory === "TV") ? "" : meta.url;
+    
     const item = createItem({
       title: document.getElementById('title').value.trim(),
-      url: meta.url,
+      url: finalUrl,  // Use filtered URL based on user selection
       status: document.getElementById('status').value,
-      category: document.getElementById('category').value,
+      category: selectedCategory,
       tags: splitTags(document.getElementById('tags').value),
       notes: document.getElementById('notes').value.trim(),
       source: meta.siteName
@@ -81,11 +84,14 @@ async function init() {
   };
 
   document.getElementById('markDoneBtn').onclick = async () => {
+    const selectedCategory = document.getElementById('category').value;
+    const finalUrl = (selectedCategory === "Movie" || selectedCategory === "TV") ? "" : meta.url;
+    
     const item = createItem({
       title: document.getElementById('title').value.trim(),
-      url: meta.url,
+      url: finalUrl,  // Use filtered URL based on user selection
       status: 'done',
-      category: document.getElementById('category').value,
+      category: selectedCategory,
       tags: splitTags(document.getElementById('tags').value),
       notes: document.getElementById('notes').value.trim(),
       source: meta.siteName
