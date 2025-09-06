@@ -106,14 +106,18 @@ async function checkConnectionStatus() {
   
   try {
     const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
+    console.log('Connection status response:', response);
+    
     if (response && response.success) {
       statusIndicator.textContent = '🟢';
       statusText.textContent = `Connected (${response.stats.total} items)`;
       connectionStatus.className = 'connection-status connected';
     } else {
+      console.log('Connection failed:', response);
       throw new Error((response && response.error) || 'Connection failed');
     }
   } catch (error) {
+    console.log('Connection error:', error);
     statusIndicator.textContent = '🔴';
     statusText.textContent = 'Not connected';
     connectionStatus.className = 'connection-status disconnected';
@@ -247,8 +251,11 @@ async function init() {
     syncBtn.style.pointerEvents = 'none';
     
     try {
+      console.log('Starting sync...');
       const response = await chrome.runtime.sendMessage({ type: 'SYNC_NOW' });
-      if (response.success) {
+      console.log('Sync response:', response);
+      
+      if (response && response.success) {
         syncBtn.innerHTML = '✅ Synced!';
         // Refresh connection status after successful sync
         await checkConnectionStatus();
@@ -257,9 +264,10 @@ async function init() {
           syncBtn.style.pointerEvents = 'auto';
         }, 1500);
       } else {
-        throw new Error(response.error || 'Sync failed');
+        throw new Error((response && response.error) || 'Sync failed');
       }
     } catch (error) {
+      console.log('Sync error:', error);
       syncBtn.innerHTML = '❌ Error';
       setTimeout(() => {
         syncBtn.innerHTML = originalText;

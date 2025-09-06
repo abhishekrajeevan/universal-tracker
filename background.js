@@ -45,19 +45,47 @@ const localAdapter = {
 async function flushOnce(){
   const opts = (await getLocal(OPTS_KEY)) || {};
   const base = opts.apps_script_url;
-  if (!base) return;
+  console.log('flushOnce: base URL:', base);
+  
+  if (!base) {
+    console.log('flushOnce: No Apps Script URL configured');
+    return;
+  }
+  
   const batch = await queueAdapter.takeBatch(100); // Increased batch size
-  if (!batch.length) return;
+  console.log('flushOnce: batch size:', batch.length);
+  
+  if (!batch.length) {
+    console.log('flushOnce: No items in queue to sync');
+    return;
+  }
 
   try {
+    console.log('flushOnce: Sending batch to:', base + "/bulkUpsert");
     const resp = await fetch(base + "/bulkUpsert", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ items: batch })
     });
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
     
-    const result = await resp.json();
+    console.log('flushOnce: Response status:', resp.status);
+    
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      console.log('flushOnce: Error response:', errorText);
+      throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
+    }
+    
+    const responseText = await resp.text();
+    console.log('flushOnce: Response text:', responseText);
+    
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      console.error('flushOnce: Failed to parse JSON:', responseText);
+      throw new Error("Invalid JSON response: " + responseText.substring(0, 200));
+    }
     console.log(`Synced ${result.upserted} items (${result.updated} updated, ${result.inserted} inserted)`);
   } catch (e) {
     console.error("Sync failed:", e);
@@ -124,8 +152,23 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
         method: "GET"
       });
       
-      if (!resp.ok) throw new Error("HTTP " + resp.status);
-      const result = await resp.json();
+      if (!resp.ok) {
+        const errorText = await resp.text();
+        console.log('GET_STATS: Error response:', errorText);
+        throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
+      }
+      
+      const responseText = await resp.text();
+      console.log('GET_STATS: Response text:', responseText);
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('GET_STATS: Failed to parse JSON:', responseText);
+        throw new Error("Invalid JSON response: " + responseText.substring(0, 200));
+      }
+      
       sendResponse({success: true, stats: result});
     } catch(e) {
       sendResponse({success: false, error: e.message});
