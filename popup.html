@@ -178,6 +178,45 @@
         gap: 16px;
       }
       
+      .connection-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        margin-bottom: 8px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+      }
+      
+      .status-indicator {
+        font-size: 10px;
+      }
+      
+      .status-text {
+        color: #64748b;
+        font-weight: 500;
+      }
+      
+      .connection-status.connected {
+        background: #d1fae5;
+        border-color: #a7f3d0;
+      }
+      
+      .connection-status.connected .status-text {
+        color: #065f46;
+      }
+      
+      .connection-status.disconnected {
+        background: #fee2e2;
+        border-color: #fca5a5;
+      }
+      
+      .connection-status.disconnected .status-text {
+        color: #991b1b;
+      }
+      
       .link {
         color: #4f46e5;
         text-decoration: none;
@@ -360,6 +399,10 @@
       </div>
 
       <div class="footer">
+        <div class="connection-status" id="connectionStatus">
+          <span class="status-indicator" id="statusIndicator">⚪</span>
+          <span class="status-text" id="statusText">Checking connection...</span>
+        </div>
         <a class="link" id="syncBtn" href="#">🔄 Sync</a>
         <div class="footer-links">
           <a class="link" id="exportBtn" href="#">📤 Export</a>

@@ -99,12 +99,36 @@ function renderItems(items) {
   };
 }
 
+async function checkConnectionStatus() {
+  const statusIndicator = document.getElementById('statusIndicator');
+  const statusText = document.getElementById('statusText');
+  const connectionStatus = document.getElementById('connectionStatus');
+  
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
+    if (response.success) {
+      statusIndicator.textContent = '🟢';
+      statusText.textContent = `Connected (${response.stats.total} items)`;
+      connectionStatus.className = 'connection-status connected';
+    } else {
+      throw new Error(response.error || 'Connection failed');
+    }
+  } catch (error) {
+    statusIndicator.textContent = '🔴';
+    statusText.textContent = 'Not connected';
+    connectionStatus.className = 'connection-status disconnected';
+  }
+}
+
 async function init() {
   const meta = await getMetadata();
   document.getElementById('pageMeta').textContent = `${meta.siteName} • ${meta.url}`;
   document.getElementById('title').value = meta.title || '';
 
   renderItems(await localAdapter.getAll());
+  
+  // Check connection status
+  await checkConnectionStatus();
 
   document.getElementById('saveBtn').onclick = async () => {
     const saveBtn = document.getElementById('saveBtn');
@@ -226,6 +250,8 @@ async function init() {
       const response = await chrome.runtime.sendMessage({ type: 'SYNC_NOW' });
       if (response.success) {
         syncBtn.innerHTML = '✅ Synced!';
+        // Refresh connection status after successful sync
+        await checkConnectionStatus();
         setTimeout(() => {
           syncBtn.innerHTML = originalText;
           syncBtn.style.pointerEvents = 'auto';

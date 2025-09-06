@@ -67,14 +67,45 @@ document.getElementById('testConnectionBtn').onclick = async () => {
       throw new Error('Please enter an Apps Script URL first');
     }
     
-    const response = await fetch(url + "/getStats", { method: "GET" });
-    if (!response.ok) throw new Error("HTTP " + response.status);
+    // Validate URL format
+    if (!url.startsWith('https://script.google.com/')) {
+      throw new Error('URL must start with https://script.google.com/');
+    }
+    
+    if (!url.endsWith('/exec')) {
+      throw new Error('URL must end with /exec');
+    }
+    
+    // Test the connection
+    const response = await fetch(url + "/getStats", { 
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('Access denied. Make sure your Apps Script is deployed with "Anyone" access.');
+      } else if (response.status === 404) {
+        throw new Error('Not found. Check that your Apps Script is deployed as a Web App.');
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    }
     
     const result = await response.json();
-    alert(`✅ Connection successful!\n\n` +
-          `Active Items: ${result.active}\n` +
-          `Archived Items: ${result.archived}\n` +
-          `Total Items: ${result.total}`);
+    
+    // Show detailed success message
+    const message = `✅ Connection successful!\n\n` +
+          `📊 Current Statistics:\n` +
+          `• Active Items: ${result.active}\n` +
+          `• Archived Items: ${result.archived}\n` +
+          `• Total Items: ${result.total}\n` +
+          `• Archive Sheets: ${result.archiveSheets}\n\n` +
+          `🎉 Your Universal Tracker is ready to use!`;
+    
+    alert(message);
     
     btn.innerHTML = '✅ Connected';
     setTimeout(() => {
@@ -83,7 +114,28 @@ document.getElementById('testConnectionBtn').onclick = async () => {
     }, 2000);
     
   } catch (error) {
-    alert(`❌ Connection failed: ${error.message}`);
+    let errorMessage = `❌ Connection failed: ${error.message}\n\n`;
+    
+    if (error.message.includes('fetch')) {
+      errorMessage += `💡 Troubleshooting tips:\n` +
+                     `• Check your internet connection\n` +
+                     `• Verify the URL is correct\n` +
+                     `• Make sure the Apps Script is deployed\n` +
+                     `• Try refreshing the Apps Script deployment`;
+    } else if (error.message.includes('Access denied')) {
+      errorMessage += `💡 To fix this:\n` +
+                     `• Go to your Apps Script editor\n` +
+                     `• Click Deploy → Manage deployments\n` +
+                     `• Edit the deployment\n` +
+                     `• Set "Who has access" to "Anyone"`;
+    } else if (error.message.includes('Not found')) {
+      errorMessage += `💡 To fix this:\n` +
+                     `• Make sure you deployed as a Web App\n` +
+                     `• Check that the URL ends with /exec\n` +
+                     `• Try redeploying the Apps Script`;
+    }
+    
+    alert(errorMessage);
     btn.innerHTML = '❌ Failed';
     setTimeout(() => {
       btn.innerHTML = originalText;
@@ -150,6 +202,45 @@ document.getElementById('triggerArchiveBtn').onclick = async () => {
       btn.disabled = false;
     }, 2000);
   }
+};
+
+// Setup guide link
+document.getElementById('setupGuideLink').onclick = (e) => {
+  e.preventDefault();
+  
+  const guide = `🚀 Universal Tracker Setup Guide
+
+📋 Step 1: Create Google Spreadsheet
+• Go to sheets.google.com
+• Create a new blank spreadsheet
+• Name it "Universal Tracker"
+
+📋 Step 2: Set Up Apps Script
+• In your spreadsheet: Extensions → Apps Script
+• Delete default code and paste the Code.gs content
+• Save the project
+
+📋 Step 3: Deploy as Web App
+• Click Deploy → New deployment
+• Choose "Web app" as type
+• Set "Execute as": Me
+• Set "Who has access": Anyone
+• Click Deploy and COPY the URL
+
+📋 Step 4: Configure Extension
+• Paste the URL in the field below
+• Set sync interval (default: 10 minutes)
+• Click Save Settings
+
+📋 Step 5: Test Connection
+• Click "Test Connection" button
+• You should see success message
+
+🎉 That's it! Your tracker is ready to use.
+
+Need more help? Check the SETUP_GUIDE.md file in your extension folder.`;
+
+  alert(guide);
 };
 
 (async function init(){
