@@ -106,12 +106,12 @@ async function checkConnectionStatus() {
   
   try {
     const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
-    if (response.success) {
+    if (response && response.success) {
       statusIndicator.textContent = '🟢';
       statusText.textContent = `Connected (${response.stats.total} items)`;
       connectionStatus.className = 'connection-status connected';
     } else {
-      throw new Error(response.error || 'Connection failed');
+      throw new Error((response && response.error) || 'Connection failed');
     }
   } catch (error) {
     statusIndicator.textContent = '🔴';
@@ -277,14 +277,14 @@ async function init() {
     
     try {
       const response = await chrome.runtime.sendMessage({ type: 'TRIGGER_ARCHIVE' });
-      if (response.success) {
+      if (response && response.success) {
         archiveBtn.innerHTML = '✅ Archived!';
         setTimeout(() => {
           archiveBtn.innerHTML = originalText;
           archiveBtn.style.pointerEvents = 'auto';
         }, 1500);
       } else {
-        throw new Error(response.error || 'Archive failed');
+        throw new Error((response && response.error) || 'Archive failed');
       }
     } catch (error) {
       archiveBtn.innerHTML = '❌ Error';
@@ -304,7 +304,7 @@ async function init() {
     
     try {
       const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
-      if (response.success) {
+      if (response && response.success) {
         const stats = response.stats;
         alert(`📊 Storage Statistics:\n\n` +
               `Active Items: ${stats.active}\n` +
@@ -315,7 +315,7 @@ async function init() {
         statsBtn.innerHTML = originalText;
         statsBtn.style.pointerEvents = 'auto';
       } else {
-        throw new Error(response.error || 'Failed to get stats');
+        throw new Error((response && response.error) || 'Failed to get stats');
       }
     } catch (error) {
       alert(`Error getting statistics: ${error.message}`);

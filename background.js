@@ -96,7 +96,7 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
       const base = opts.apps_script_url;
       if (!base) {
         sendResponse({success: false, error: "No Apps Script URL configured"});
-        return;
+        return true;
       }
       
       const resp = await fetch(base + "/triggerArchive", {
@@ -110,13 +110,14 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
     } catch(e) {
       sendResponse({success: false, error: e.message});
     }
+    return true;
   } else if (msg?.type === "GET_STATS") {
     try {
       const opts = (await getLocal(OPTS_KEY)) || {};
       const base = opts.apps_script_url;
       if (!base) {
         sendResponse({success: false, error: "No Apps Script URL configured"});
-        return;
+        return true;
       }
       
       const resp = await fetch(base + "/getStats", {
@@ -129,6 +130,7 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
     } catch(e) {
       sendResponse({success: false, error: e.message});
     }
+    return true;
   } else if (msg?.type === "UPSERT_ITEM") {
     // not used in this scaffold (popup writes to local + queue directly)
   }

@@ -154,7 +154,7 @@ document.getElementById('viewStatsBtn').onclick = async () => {
   
   try {
     const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
-    if (response.success) {
+    if (response && response.success) {
       const stats = response.stats;
       alert(`📊 Storage Statistics:\n\n` +
             `Active Items: ${stats.active}\n` +
@@ -163,7 +163,7 @@ document.getElementById('viewStatsBtn').onclick = async () => {
             `Archive Sheets: ${stats.archiveSheets}\n\n` +
             `💡 Tip: Items older than 6 months are automatically archived to keep your active sheet fast.`);
     } else {
-      throw new Error(response.error || 'Failed to get stats');
+      throw new Error((response && response.error) || 'Failed to get stats');
     }
   } catch (error) {
     alert(`Error getting statistics: ${error.message}`);
@@ -187,11 +187,11 @@ document.getElementById('triggerArchiveBtn').onclick = async () => {
   
   try {
     const response = await chrome.runtime.sendMessage({ type: 'TRIGGER_ARCHIVE' });
-    if (response.success) {
+    if (response && response.success) {
       alert(`✅ Archive completed!\n\n${response.message}`);
       btn.innerHTML = '✅ Archived';
     } else {
-      throw new Error(response.error || 'Archive failed');
+      throw new Error((response && response.error) || 'Archive failed');
     }
   } catch (error) {
     alert(`❌ Archive failed: ${error.message}`);
