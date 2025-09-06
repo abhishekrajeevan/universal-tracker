@@ -5,30 +5,204 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Universal Tracker · Options</title>
     <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 20px; max-width: 720px; }
-      label { display:block; font-size:13px; color:#555; margin:16px 0 6px; }
-      input[type="text"], input[type="number"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
-      .btn { margin-top: 12px; padding: 10px 12px; border: none; background:#1a73e8; color:#fff; border-radius: 8px; cursor: pointer; }
-      .small { font-size: 13px; color: #666; }
-      code { background:#f4f6f8; padding:2px 6px; border-radius:4px; }
-      .ok { color: #188038; }
-      .warn { color: #b80606; }
+      * { box-sizing: border-box; }
+      
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        margin: 0; 
+        padding: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: #2d3748;
+      }
+      
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px 20px;
+      }
+      
+      .card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+      }
+      
+      .header {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        padding: 40px;
+        text-align: center;
+      }
+      
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+      
+      .header-icon {
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+      
+      .content {
+        padding: 40px;
+      }
+      
+      .description {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 32px;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #64748b;
+      }
+      
+      .description strong {
+        color: #374151;
+      }
+      
+      .description code {
+        background: #e2e8f0;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+        font-size: 13px;
+        color: #1e293b;
+      }
+      
+      .form-group {
+        margin-bottom: 24px;
+      }
+      
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+      }
+      
+      input[type="text"], input[type="number"] {
+        width: 100%;
+        padding: 16px 20px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 15px;
+        transition: all 0.2s ease;
+        background: #fafafa;
+      }
+      
+      input[type="text"]:focus, input[type="number"]:focus {
+        outline: none;
+        border-color: #4f46e5;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+      
+      .btn {
+        padding: 16px 32px;
+        border: none;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.3);
+      }
+      
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px 0 rgba(79, 70, 229, 0.4);
+      }
+      
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+      
+      #status {
+        margin-top: 20px;
+        padding: 16px;
+        border-radius: 12px;
+        font-weight: 500;
+        display: none;
+      }
+      
+      .status-success {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+      
+      .status-error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+      }
+      
+      .help-text {
+        font-size: 13px;
+        color: #64748b;
+        margin-top: 6px;
+        line-height: 1.4;
+      }
     </style>
   </head>
   <body>
-    <h1>Universal Tracker · Options</h1>
-    <p class="small">
-      Paste your <b>Apps Script Web App Base URL</b> (without trailing slash). The extension will call
-      <code>/bulkUpsert</code> for syncing items.
-    </p>
-    <label>Apps Script Base URL</label>
-    <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/AKfycbx.../exec" />
+    <div class="container">
+      <div class="card">
+        <div class="header">
+          <h1>
+            <div class="header-icon">⚙️</div>
+            Universal Tracker · Options
+          </h1>
+        </div>
+        
+        <div class="content">
+          <div class="description">
+            Configure your Universal Tracker settings. Paste your <strong>Apps Script Web App Base URL</strong> (without trailing slash). The extension will call <code>/bulkUpsert</code> for syncing items to your Google Sheets.
+          </div>
+          
+          <div class="form-group">
+            <label>🔗 Apps Script Base URL</label>
+            <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/AKfycbx.../exec" />
+            <div class="help-text">Get this URL from your Google Apps Script deployment settings</div>
+          </div>
 
-    <label>Auto-sync interval (minutes)</label>
-    <input type="number" id="autosync" value="10" min="5" step="1" />
+          <div class="form-group">
+            <label>⏰ Auto-sync interval (minutes)</label>
+            <input type="number" id="autosync" value="10" min="5" step="1" />
+            <div class="help-text">How often to automatically sync your tracked items (minimum 5 minutes)</div>
+          </div>
 
-    <button class="btn" id="saveBtn">Save</button>
-    <div id="status"></div>
+          <button class="btn" id="saveBtn">
+            💾 Save Settings
+          </button>
+          <div id="status"></div>
+        </div>
+      </div>
+    </div>
 
     <script src="shared/utils.js"></script>
     <script src="options.js"></script>

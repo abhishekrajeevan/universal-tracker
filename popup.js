@@ -17,21 +17,62 @@ async function getMetadata() {
   };
 }
 
+function getCategoryIcon(category) {
+  const icons = {
+    'Movie': '🎬',
+    'TV': '📺', 
+    'Trailer': '🎭',
+    'Video': '🎥',
+    'Blog': '📝',
+    'Podcast': '🎧',
+    'Book': '📖',
+    'Course': '🎓',
+    'Game': '🎮',
+    'Other': '📄'
+  };
+  return icons[category] || '📄';
+}
+
 function renderItems(items) {
   const list = document.getElementById('list');
   list.innerHTML = '';
+  
+  if (items.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📚</div>
+        <div>No items yet</div>
+        <div style="font-size: 12px; margin-top: 4px; opacity: 0.7;">Start tracking content by saving your first item!</div>
+      </div>
+    `;
+    return;
+  }
+  
   const sorted = items.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
   for (const it of sorted) {
     const host = (it.source || (it.url ? new URL(it.url).hostname : ''));
     const div = document.createElement('div');
     div.className = 'item';
     div.innerHTML = `
-      <div class="title">${it.title || '(untitled)'} <span class="pill">${it.status}</span></div>
-      <div class="meta">${it.category || 'Other'} · ${host}</div>
-      <div class="actions">
-        <button class="btn btn-secondary btn-small" data-act="toggle" data-id="${it.id}">${it.status==='done'?'Mark To Do':'Mark Done'}</button>
-        <button class="btn btn-secondary btn-small" data-act="remove" data-id="${it.id}">Delete</button>
-        <a class="link" href="${it.url}" target="_blank">Open</a>
+      <div class="item-title">
+        <span class="category-icon">${getCategoryIcon(it.category)}</span>
+        ${it.title || '(untitled)'}
+        <span class="status-pill status-${it.status}">${it.status === 'done' ? '✅ Done' : '📋 To Do'}</span>
+      </div>
+      <div class="item-meta">
+        <span>${it.category || 'Other'}</span>
+        <span>•</span>
+        <span>${host}</span>
+        ${it.tags && it.tags.length > 0 ? `<span>•</span><span>🏷️ ${it.tags.slice(0, 2).join(', ')}${it.tags.length > 2 ? '...' : ''}</span>` : ''}
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-secondary btn-small" data-act="toggle" data-id="${it.id}">
+          ${it.status === 'done' ? '↩️ Mark To Do' : '✅ Mark Done'}
+        </button>
+        <button class="btn btn-secondary btn-small" data-act="remove" data-id="${it.id}">
+          🗑️ Delete
+        </button>
+        ${it.url ? `<a class="link" href="${it.url}" target="_blank">🔗 Open</a>` : ''}
       </div>
     `;
     list.appendChild(div);
@@ -66,39 +107,87 @@ async function init() {
   renderItems(await localAdapter.getAll());
 
   document.getElementById('saveBtn').onclick = async () => {
-    const selectedCategory = document.getElementById('category').value;
-    const finalUrl = (selectedCategory === "Movie" || selectedCategory === "TV") ? "" : meta.url;
+    const saveBtn = document.getElementById('saveBtn');
+    const originalText = saveBtn.innerHTML;
     
-    const item = createItem({
-      title: document.getElementById('title').value.trim(),
-      url: finalUrl,  // Use filtered URL based on user selection
-      status: document.getElementById('status').value,
-      category: selectedCategory,
-      tags: splitTags(document.getElementById('tags').value),
-      notes: document.getElementById('notes').value.trim(),
-      source: meta.siteName
-    });
-    await localAdapter.upsert(item);
-    await queueAdapter.enqueue(item);
-    renderItems(await localAdapter.getAll());
+    // Visual feedback
+    saveBtn.innerHTML = '⏳ Saving...';
+    saveBtn.disabled = true;
+    
+    try {
+      const selectedCategory = document.getElementById('category').value;
+      const finalUrl = (selectedCategory === "Movie" || selectedCategory === "TV") ? "" : meta.url;
+      
+      const item = createItem({
+        title: document.getElementById('title').value.trim(),
+        url: finalUrl,  // Use filtered URL based on user selection
+        status: document.getElementById('status').value,
+        category: selectedCategory,
+        tags: splitTags(document.getElementById('tags').value),
+        notes: document.getElementById('notes').value.trim(),
+        source: meta.siteName
+      });
+      await localAdapter.upsert(item);
+      await queueAdapter.enqueue(item);
+      
+      // Success feedback
+      saveBtn.innerHTML = '✅ Saved!';
+      setTimeout(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+      }, 1500);
+      
+      renderItems(await localAdapter.getAll());
+    } catch (error) {
+      // Error feedback
+      saveBtn.innerHTML = '❌ Error';
+      setTimeout(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+      }, 2000);
+    }
   };
 
   document.getElementById('markDoneBtn').onclick = async () => {
-    const selectedCategory = document.getElementById('category').value;
-    const finalUrl = (selectedCategory === "Movie" || selectedCategory === "TV") ? "" : meta.url;
+    const markDoneBtn = document.getElementById('markDoneBtn');
+    const originalText = markDoneBtn.innerHTML;
     
-    const item = createItem({
-      title: document.getElementById('title').value.trim(),
-      url: finalUrl,  // Use filtered URL based on user selection
-      status: 'done',
-      category: selectedCategory,
-      tags: splitTags(document.getElementById('tags').value),
-      notes: document.getElementById('notes').value.trim(),
-      source: meta.siteName
-    });
-    await localAdapter.upsert(item);
-    await queueAdapter.enqueue(item);
-    renderItems(await localAdapter.getAll());
+    // Visual feedback
+    markDoneBtn.innerHTML = '⏳ Marking...';
+    markDoneBtn.disabled = true;
+    
+    try {
+      const selectedCategory = document.getElementById('category').value;
+      const finalUrl = (selectedCategory === "Movie" || selectedCategory === "TV") ? "" : meta.url;
+      
+      const item = createItem({
+        title: document.getElementById('title').value.trim(),
+        url: finalUrl,  // Use filtered URL based on user selection
+        status: 'done',
+        category: selectedCategory,
+        tags: splitTags(document.getElementById('tags').value),
+        notes: document.getElementById('notes').value.trim(),
+        source: meta.siteName
+      });
+      await localAdapter.upsert(item);
+      await queueAdapter.enqueue(item);
+      
+      // Success feedback
+      markDoneBtn.innerHTML = '✅ Done!';
+      setTimeout(() => {
+        markDoneBtn.innerHTML = originalText;
+        markDoneBtn.disabled = false;
+      }, 1500);
+      
+      renderItems(await localAdapter.getAll());
+    } catch (error) {
+      // Error feedback
+      markDoneBtn.innerHTML = '❌ Error';
+      setTimeout(() => {
+        markDoneBtn.innerHTML = originalText;
+        markDoneBtn.disabled = false;
+      }, 2000);
+    }
   };
 
   document.getElementById('exportBtn').onclick = async () => {
