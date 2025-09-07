@@ -112,11 +112,20 @@ async function syncLoop(){
 
 // messages from popup
 chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
-  if (msg?.type === "SYNC_NOW") {
+  console.log('Background received message:', msg);
+  
+  if (msg?.type === "TEST") {
+    console.log('TEST: Sending test response');
+    sendResponse({success: true, message: "Test successful"});
+    return true;
+  } else if (msg?.type === "SYNC_NOW") {
     try { 
+      console.log('SYNC_NOW: Starting sync...');
       await syncLoop(); 
+      console.log('SYNC_NOW: Sync completed successfully');
       sendResponse({success: true});
     } catch(e) {
+      console.log('SYNC_NOW: Sync failed:', e.message);
       sendResponse({success: false, error: e.message});
     }
   } else if (msg?.type === "TRIGGER_ARCHIVE") {
@@ -158,13 +167,16 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
     return true;
   } else if (msg?.type === "GET_STATS") {
     try {
+      console.log('GET_STATS: Starting request...');
       const opts = (await getLocal(OPTS_KEY)) || {};
       const base = opts.apps_script_url;
       if (!base) {
+        console.log('GET_STATS: No Apps Script URL configured');
         sendResponse({success: false, error: "No Apps Script URL configured"});
         return true;
       }
       
+      console.log('GET_STATS: Fetching from:', base + "/getStats");
       const resp = await fetch(base + "/getStats", {
         method: "GET"
       });
@@ -181,14 +193,16 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
       let result;
       try {
         result = JSON.parse(responseText);
-    } catch (e) {
-      console.error('GET_STATS: Failed to parse JSON:', responseText);
-      console.error('GET_STATS: Full response:', responseText);
-      throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
-    }
+      } catch (e) {
+        console.error('GET_STATS: Failed to parse JSON:', responseText);
+        console.error('GET_STATS: Full response:', responseText);
+        throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
+      }
       
+      console.log('GET_STATS: Sending response:', {success: true, stats: result});
       sendResponse({success: true, stats: result});
     } catch(e) {
+      console.log('GET_STATS: Error occurred:', e.message);
       sendResponse({success: false, error: e.message});
     }
     return true;

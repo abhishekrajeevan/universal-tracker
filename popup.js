@@ -105,12 +105,13 @@ async function checkConnectionStatus() {
   const connectionStatus = document.getElementById('connectionStatus');
   
   try {
-    // Add timeout to prevent hanging
-    const response = await Promise.race([
-      chrome.runtime.sendMessage({ type: 'GET_STATS' }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-    ]);
+    console.log('Sending GET_STATS message...');
     
+    // Test basic message passing first
+    const testResponse = await chrome.runtime.sendMessage({ type: 'TEST' });
+    console.log('Test response:', testResponse);
+    
+    const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
     console.log('Connection status response:', response);
     
     if (response && response.success) {
