@@ -110,6 +110,109 @@ async function syncLoop(){
   } finally { syncing = false; }
 }
 
+// Reminder notification handler
+async function handleReminderAlarm(alarmName) {
+  if (!alarmName.startsWith('reminder_')) return;
+  
+  const itemId = alarmName.replace('reminder_', '');
+  const items = await localAdapter.getAll();
+  const item = items.find(x => x.id === itemId);
+  
+  if (!item) {
+    console.log('Reminder alarm fired but item not found:', itemId);
+    return;
+  }
+  
+  // Create notification
+  const notificationOptions = {
+    type: 'basic',
+    iconUrl: 'icons/icon48.png',
+    title: '📚 Universal Tracker Reminder',
+    message: `Don't forget: ${item.title}`,
+    contextMessage: `${item.category}${item.priority === 'high' ? ' • High Priority' : ''}`,
+    buttons: [
+      { title: 'Mark as Done' },
+      { title: 'Snooze (1 hour)' }
+    ],
+    requireInteraction: true
+  };
+  
+  chrome.notifications.create(`reminder_${itemId}`, notificationOptions);
+  
+  console.log('Reminder notification created for:', item.title);
+}
+
+// Handle notification button clicks
+chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
+  if (!notificationId.startsWith('reminder_')) return;
+  
+  const itemId = notificationId.replace('reminder_', '');
+  const items = await localAdapter.getAll();
+  const item = items.find(x => x.id === itemId);
+  
+  if (!item) return;
+  
+  if (buttonIndex === 0) { // Mark as Done
+    item.status = 'done';
+    item.completed_at = nowISO();
+    item.updated_at = nowISO();
+    item.reminder_time = null; // Clear reminder
+    
+    await localAdapter.upsert(item);
+    await queueAdapter.enqueue(item);
+    
+    chrome.notifications.clear(notificationId);
+    
+    // Show success notification
+    chrome.notifications.create(`done_${itemId}`, {
+      type: 'basic',
+      iconUrl: 'icons/icon48.png',
+      title: '✅ Item Completed',
+      message: `"${item.title}" marked as done!`,
+    });
+    
+    // Clear the success notification after 3 seconds
+    setTimeout(() => {
+      chrome.notifications.clear(`done_${itemId}`);
+    }, 3000);
+    
+  } else if (buttonIndex === 1) { // Snooze
+    const snoozeTime = new Date();
+    snoozeTime.setHours(snoozeTime.getHours() + 1); // Snooze for 1 hour
+    
+    item.reminder_time = snoozeTime.toISOString();
+    item.updated_at = nowISO();
+    
+    await localAdapter.upsert(item);
+    await queueAdapter.enqueue(item);
+    
+    // Schedule new reminder
+    chrome.alarms.create(`reminder_${itemId}`, {
+      when: snoozeTime.getTime()
+    });
+    
+    chrome.notifications.clear(notificationId);
+    
+    // Show snooze notification
+    chrome.notifications.create(`snooze_${itemId}`, {
+      type: 'basic',
+      iconUrl: 'icons/icon48.png',
+      title: '⏰ Reminder Snoozed',
+      message: `"${item.title}" reminder set for 1 hour`,
+    });
+    
+    // Clear the snooze notification after 3 seconds
+    setTimeout(() => {
+      chrome.notifications.clear(`snooze_${itemId}`);
+    }, 3000);
+  }
+});
+
+// Clear notification on click
+chrome.notifications.onClicked.addListener((notificationId) => {
+  chrome.notifications.clear(notificationId);
+});
+
 // messages from popup - FIXED: Return true and use async sendResponse properly
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   console.log('Background received message:', msg);
@@ -219,6 +322,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // FIXED: Auto-sync alarm handling with proper error handling and config check
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   console.log('Alarm triggered:', alarm.name);
+  
+  // Handle reminder alarms
+  if (alarm.name.startsWith('reminder_')) {
+    await handleReminderAlarm(alarm.name);
+    return;
+  }
+  
+  // Handle auto-sync alarm
   if (alarm.name === "autosync") {
     try { 
       console.log('Auto-sync triggered by alarm');
@@ -242,11 +353,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 chrome.runtime.onInstalled.addListener(async () => {
   console.log('Extension installed/updated');
   await setupAutoSync();
+  await rescheduleReminders(); // Reschedule existing reminders
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   console.log('Extension started');
   await setupAutoSync();
+  await rescheduleReminders(); // Reschedule existing reminders
 });
 
 async function setupAutoSync() {
@@ -272,4 +385,28 @@ async function setupAutoSync() {
   } else {
     console.error('Failed to create autosync alarm');
   }
+}
+
+// Reschedule reminders after browser restart
+async function rescheduleReminders() {
+  console.log('Rescheduling reminders...');
+  const items = await localAdapter.getAll();
+  let rescheduledCount = 0;
+  
+  for (const item of items) {
+    if (item.reminder_time) {
+      const reminderTime = new Date(item.reminder_time);
+      const now = new Date();
+      
+      // Only reschedule future reminders
+      if (reminderTime > now) {
+        chrome.alarms.create(`reminder_${item.id}`, {
+          when: reminderTime.getTime()
+        });
+        rescheduledCount++;
+      }
+    }
+  }
+  
+  console.log(`Rescheduled ${rescheduledCount} reminders`);
 }

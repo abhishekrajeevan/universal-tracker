@@ -1,5 +1,5 @@
 // Enhanced Universal Tracker - Google Apps Script
-// Optimized for large datasets with archiving and performance improvements
+// Optimized for large datasets with archiving, priority, and reminder support
 
 const CONFIG = {
   ACTIVE_SHEET: 'Items_Active',
@@ -7,7 +7,7 @@ const CONFIG = {
   MAX_ACTIVE_ROWS: 10000, // Archive when active sheet exceeds this
   ARCHIVE_MONTHS: 6, // Archive items older than 6 months
   BATCH_SIZE: 100, // Process items in batches
-  HEADERS: ['id','title','url','status','category','tags','notes','source','added_at','updated_at','completed_at']
+  HEADERS: ['id','title','url','status','category','priority','tags','notes','source','reminder_time','added_at','updated_at','completed_at']
 };
 
 // Initialize spreadsheet with proper structure
@@ -35,12 +35,14 @@ function initializeSpreadsheet() {
     activeSheet.setColumnWidth(3, 200); // URL
     activeSheet.setColumnWidth(4, 100); // Status
     activeSheet.setColumnWidth(5, 120); // Category
-    activeSheet.setColumnWidth(6, 150); // Tags
-    activeSheet.setColumnWidth(7, 200); // Notes
-    activeSheet.setColumnWidth(8, 150); // Source
-    activeSheet.setColumnWidth(9, 150); // Added at
-    activeSheet.setColumnWidth(10, 150); // Updated at
-    activeSheet.setColumnWidth(11, 150); // Completed at
+    activeSheet.setColumnWidth(6, 80);  // Priority
+    activeSheet.setColumnWidth(7, 150); // Tags
+    activeSheet.setColumnWidth(8, 200); // Notes
+    activeSheet.setColumnWidth(9, 150); // Source
+    activeSheet.setColumnWidth(10, 150); // Reminder time
+    activeSheet.setColumnWidth(11, 150); // Added at
+    activeSheet.setColumnWidth(12, 150); // Updated at
+    activeSheet.setColumnWidth(13, 150); // Completed at
   }
   
   return activeSheet;
@@ -86,7 +88,7 @@ function archiveOldItems() {
   const itemsToKeep = [header];
   
   rows.forEach(row => {
-    const addedAt = new Date(row[8]); // added_at column
+    const addedAt = new Date(row[10]); // added_at column (updated index)
     if (addedAt < cutoffDate) {
       itemsToArchive.push(row);
     } else {
@@ -99,7 +101,7 @@ function archiveOldItems() {
   // Group items by month for archiving
   const archiveGroups = {};
   itemsToArchive.forEach(row => {
-    const date = new Date(row[8]);
+    const date = new Date(row[10]);
     const key = `${date.getFullYear()}_${(date.getMonth() + 1).toString().padStart(2, '0')}`;
     if (!archiveGroups[key]) archiveGroups[key] = [];
     archiveGroups[key].push(row);
@@ -171,7 +173,16 @@ function bulkUpsert(items) {
   
   // Separate updates from inserts
   items.forEach(item => {
-    const row = header.map(h => (h in item) ? item[h] : "");
+    const row = header.map(h => {
+      if (h in item) {
+        // Handle arrays (tags) and objects properly
+        if (h === 'tags' && Array.isArray(item[h])) {
+          return item[h].join(', ');
+        }
+        return item[h];
+      }
+      return "";
+    });
     const existingRow = existingIds.get(String(item.id));
     
     if (existingRow) {
@@ -211,7 +222,7 @@ function bulkUpsert(items) {
 }
 
 // Get items with pagination support
-function getItems(limit = 1000, offset = 0, category = null, status = null) {
+function getItems(limit = 1000, offset = 0, category = null, status = null, priority = null) {
   const activeSheet = initializeSpreadsheet();
   const lastRow = activeSheet.getLastRow();
   
@@ -237,9 +248,21 @@ function getItems(limit = 1000, offset = 0, category = null, status = null) {
     filteredRows = filteredRows.filter(row => row[statusIdx] === status);
   }
   
+  if (priority) {
+    const priorityIdx = header.indexOf('priority');
+    filteredRows = filteredRows.filter(row => row[priorityIdx] === priority);
+  }
+  
   // Apply pagination
   const paginatedRows = filteredRows.slice(offset, offset + limit);
-  const items = paginatedRows.map(row => Object.fromEntries(header.map((h, i) => [h, row[i]])));
+  const items = paginatedRows.map(row => {
+    const item = Object.fromEntries(header.map((h, i) => [h, row[i]]));
+    // Convert tags back to array
+    if (item.tags && typeof item.tags === 'string') {
+      item.tags = item.tags.split(',').map(tag => tag.trim()).filter(Boolean);
+    }
+    return item;
+  });
   
   return ContentService
     .createTextOutput(JSON.stringify({
@@ -260,12 +283,13 @@ function doGet(e) {
   }
 
   // Default behaviour: list items with optional filters
-  const { limit, offset, category, status } = e.parameter || {};
+  const { limit, offset, category, status, priority } = e.parameter || {};
   return getItems(
     limit ? parseInt(limit, 10) : 1000,
     offset ? parseInt(offset, 10) : 0,
     category || null,
-    status || null
+    status || null,
+    priority || null
   );
 }
 
@@ -285,18 +309,7 @@ function doPost(e) {
   return bulkUpsert(items);
 }
 
-// New endpoint for bulk operations
-// -----------------------------------------------------------------------------
 // Routing helper for bulk upsert requests
-//
-// Note: Google Apps Script only exposes doGet/doPost on the root /exec URL.
-//       Any additional path segments (e.pathInfo) must be handled manually.
-//       This helper parses the request body and forwards it to the primary
-//       bulkUpsert(items) implementation defined above.
-//
-// Keep in mind that using a duplicate function name (bulkUpsert) here would
-//       overwrite the main upsert implementation, causing infinite recursion.
-//       Therefore, we provide this wrapper with a distinct name.
 function handleBulkUpsert(e) {
   const body  = JSON.parse(e.postData && e.postData.contents || "{}");
   const items = body.items || (body.item ? [body.item] : []);
@@ -329,12 +342,47 @@ function getStats() {
     archivedCount += Math.max(0, sheet.getLastRow() - 1);
   });
   
+  // Get priority and reminder stats
+  let priorityStats = { high: 0, medium: 0, low: 0 };
+  let reminderStats = { total: 0, upcoming: 0 };
+  
+  if (lastRow > 1) {
+    const data = activeSheet.getDataRange().getValues();
+    const [header, ...rows] = data;
+    const priorityIdx = header.indexOf('priority');
+    const reminderIdx = header.indexOf('reminder_time');
+    const statusIdx = header.indexOf('status');
+    
+    const now = new Date();
+    
+    rows.forEach(row => {
+      // Count priorities (only for active items)
+      if (row[statusIdx] === 'todo') {
+        const priority = row[priorityIdx] || 'medium';
+        if (priorityStats.hasOwnProperty(priority)) {
+          priorityStats[priority]++;
+        }
+      }
+      
+      // Count reminders
+      if (row[reminderIdx]) {
+        reminderStats.total++;
+        const reminderTime = new Date(row[reminderIdx]);
+        if (reminderTime > now) {
+          reminderStats.upcoming++;
+        }
+      }
+    });
+  }
+  
   return ContentService
     .createTextOutput(JSON.stringify({
       active: activeCount,
       archived: archivedCount,
       total: activeCount + archivedCount,
-      archiveSheets: archiveSheets.length
+      archiveSheets: archiveSheets.length,
+      priorities: priorityStats,
+      reminders: reminderStats
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }

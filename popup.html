@@ -11,7 +11,7 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         margin: 0; 
         padding: 16px; 
-        width: 380px; 
+        width: 400px; 
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: #2d3748;
         min-height: 500px;
@@ -86,7 +86,7 @@
         margin-bottom: 6px;
       }
       
-      input[type="text"], textarea, select {
+      input[type="text"], input[type="datetime-local"], textarea, select {
         width: 100%;
         padding: 12px 16px;
         border: 2px solid #e5e7eb;
@@ -96,7 +96,7 @@
         background: #fafafa;
       }
       
-      input[type="text"]:focus, textarea:focus, select:focus {
+      input[type="text"]:focus, input[type="datetime-local"]:focus, textarea:focus, select:focus {
         outline: none;
         border-color: #4f46e5;
         background: white;
@@ -113,6 +113,41 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 12px;
+      }
+      
+      .tags-input-container {
+        position: relative;
+      }
+      
+      .tags-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-top: none;
+        border-radius: 0 0 12px 12px;
+        max-height: 120px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+      }
+      
+      .tag-suggestion {
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 13px;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background-color 0.2s ease;
+      }
+      
+      .tag-suggestion:hover, .tag-suggestion.selected {
+        background: #f8fafc;
+      }
+      
+      .tag-suggestion:last-child {
+        border-bottom: none;
       }
       
       .btn {
@@ -133,6 +168,7 @@
         background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
         color: white;
         box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.3);
+        width: 100%;
       }
       
       .btn-primary:hover {
@@ -155,13 +191,6 @@
         padding: 6px 12px;
         font-size: 12px;
         border-radius: 8px;
-      }
-      
-      .btn-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 20px;
       }
       
       .footer {
@@ -230,7 +259,7 @@
       }
       
       .list {
-        max-height: 300px;
+        max-height: 350px;
         overflow-y: auto;
         margin-top: 20px;
         border-radius: 12px;
@@ -280,6 +309,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        flex-wrap: wrap;
       }
       
       .item-actions {
@@ -305,6 +335,20 @@
       .status-done {
         background: #d1fae5;
         color: #065f46;
+      }
+      
+      .reminder-pill {
+        background: #fef3c7;
+        color: #92400e;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-weight: 500;
+      }
+      
+      .reminder-active {
+        background: #ddd6fe;
+        color: #5b21b6;
       }
       
       .category-icon {
@@ -334,6 +378,41 @@
         margin-bottom: 12px;
         opacity: 0.5;
       }
+      
+      .edit-mode {
+        background: #fef3c7;
+        border: 2px solid #fbbf24;
+      }
+      
+      .edit-indicator {
+        background: #f59e0b;
+        color: white;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-weight: 600;
+        margin-left: auto;
+      }
+
+      .reminder-section {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+
+      .reminder-section label {
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .reminder-checkbox {
+        width: auto !important;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
@@ -351,16 +430,10 @@
         <div class="form-group">
           <label>Title</label>
           <input type="text" id="title" placeholder="Enter a title..." />
+          <div class="edit-indicator" id="editIndicator" style="display: none;">Editing Item</div>
         </div>
 
         <div class="form-grid">
-          <div class="form-group">
-            <label>Status</label>
-            <select id="status">
-              <option value="todo">📋 To Do</option>
-              <option value="done">✅ Done</option>
-            </select>
-          </div>
           <div class="form-group">
             <label>Category</label>
             <select id="category">
@@ -376,11 +449,32 @@
               <option value="Other">📄 Other</option>
             </select>
           </div>
+          <div class="form-group">
+            <label>Priority</label>
+            <select id="priority">
+              <option value="low">🔵 Low</option>
+              <option value="medium" selected>🟡 Medium</option>
+              <option value="high">🔴 High</option>
+            </select>
+          </div>
         </div>
 
         <div class="form-group">
           <label>Tags (comma-separated)</label>
-          <input type="text" id="tags" placeholder="netflix, friend recommended, action" />
+          <div class="tags-input-container">
+            <input type="text" id="tags" placeholder="netflix, friend recommended, action" autocomplete="off" />
+            <div class="tags-suggestions" id="tagsSuggestions"></div>
+          </div>
+        </div>
+
+        <div class="reminder-section">
+          <label>
+            <input type="checkbox" id="reminderEnabled" class="reminder-checkbox">
+            ⏰ Set Reminder
+          </label>
+          <div id="reminderDateTime" style="display: none;">
+            <input type="datetime-local" id="reminderTime" />
+          </div>
         </div>
 
         <div class="form-group">
@@ -388,14 +482,10 @@
           <textarea id="notes" placeholder="Add your thoughts, ratings, or any additional notes..."></textarea>
         </div>
 
-        <div class="btn-grid">
-          <button id="saveBtn" class="btn btn-primary">
-            💾 Save
-          </button>
-          <button id="markDoneBtn" class="btn btn-secondary">
-            ✅ Mark Done
-          </button>
-        </div>
+        <button id="saveBtn" class="btn btn-primary">
+          <span id="saveBtnIcon">💾</span>
+          <span id="saveBtnText">Save Item</span>
+        </button>
       </div>
 
       <div class="footer">

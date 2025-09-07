@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Universal To-Do/Done Tracker",
-  "version": "0.1.0",
-  "description": "One-click save of the current page into a user-owned tracker (To Do / Done), with Google Sheets sync.",
+  "version": "0.2.0",
+  "description": "One-click save of the current page into a user-owned tracker (To Do / Done), with Google Sheets sync, reminders, and editing.",
   "permissions": [
     "storage",
     "tabs",
     "scripting",
     "alarms",
-    "downloads"
+    "downloads",
+    "notifications"
   ],
   "host_permissions": ["<all_urls>"],
   "action": { "default_popup": "popup.html" },
