@@ -107,11 +107,16 @@ async function checkConnectionStatus() {
   try {
     console.log('Sending GET_STATS message...');
     
-    // Test basic message passing first
-    const testResponse = await chrome.runtime.sendMessage({ type: 'TEST' });
-    console.log('Test response:', testResponse);
+    const response = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: 'GET_STATS' }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
+        }
+      });
+    });
     
-    const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
     console.log('Connection status response:', response);
     
     if (response && response.success) {
@@ -268,7 +273,15 @@ async function init() {
     
     try {
       console.log('Starting sync...');
-      const response = await chrome.runtime.sendMessage({ type: 'SYNC_NOW' });
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: 'SYNC_NOW' }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
+      });
       console.log('Sync response:', response);
       
       if (response && response.success) {
@@ -300,7 +313,16 @@ async function init() {
     archiveBtn.style.pointerEvents = 'none';
     
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'TRIGGER_ARCHIVE' });
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: 'TRIGGER_ARCHIVE' }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
+      });
+      
       if (response && response.success) {
         archiveBtn.innerHTML = '✅ Archived!';
         setTimeout(() => {
@@ -327,7 +349,16 @@ async function init() {
     statsBtn.style.pointerEvents = 'none';
     
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'GET_STATS' });
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: 'GET_STATS' }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
+      });
+      
       if (response && response.success) {
         const stats = response.stats;
         alert(`📊 Storage Statistics:\n\n` +

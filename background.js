@@ -215,13 +215,22 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
 
 // periodic alarm for autosync
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+  console.log('Alarm triggered:', alarm.name);
   if (alarm.name === "autosync") {
-    try { await syncLoop(); } catch(e) {}
+    try { 
+      console.log('Auto-sync triggered by alarm');
+      await syncLoop(); 
+      console.log('Auto-sync completed');
+    } catch(e) {
+      console.log('Auto-sync failed:', e.message);
+    }
   }
 });
 
 chrome.runtime.onInstalled.addListener(async () => {
   const opts = (await getLocal(OPTS_KEY)) || { autosync_mins: 10 };
   await setLocal(OPTS_KEY, opts);
-  chrome.alarms.create("autosync", { periodInMinutes: Math.max(5, Number(opts.autosync_mins||10)) });
+  const interval = Math.max(5, Number(opts.autosync_mins||10));
+  console.log('Creating autosync alarm with interval:', interval, 'minutes');
+  chrome.alarms.create("autosync", { periodInMinutes: interval });
 });
