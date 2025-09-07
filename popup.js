@@ -256,6 +256,8 @@ function renderItems(items) {
       }
     } else if (act === 'remove') {
       if (confirm('Are you sure you want to delete this item?')) {
+        // Queue deletion for backend, then remove locally
+        await queueAdapter.enqueue({ op: 'delete', id });
         await localAdapter.remove(id);
         if (editingItemId === id) {
           cancelEditing();

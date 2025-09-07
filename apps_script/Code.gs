@@ -388,6 +388,11 @@ function doPost(e) {
   if (action === "bulkUpsert") {
     return handleBulkUpsert(e);
   }
+  if (action === "bulkDelete") {
+    const body  = JSON.parse(e.postData && e.postData.contents || "{}");
+    const ids = body.ids || [];
+    return bulkDelete(ids);
+  }
   if (action === "triggerArchive") {
     return triggerArchive();
   }
@@ -412,6 +417,54 @@ function handleBulkUpsert(e) {
   const body  = JSON.parse(e.postData && e.postData.contents || "{}");
   const items = body.items || (body.item ? [body.item] : []);
   return bulkUpsert(items);
+}
+
+// Bulk delete by IDs across active and archive sheets
+function bulkDelete(ids) {
+  try {
+    if (!ids || !ids.length) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ ok: true, deleted: 0 }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const ss = SpreadsheetApp.getActive();
+    const sheets = ss.getSheets();
+    const targetSheets = sheets.filter(sh => sh.getName() === CONFIG.ACTIVE_SHEET || sh.getName().indexOf(CONFIG.ARCHIVE_SHEET_PREFIX) === 0);
+
+    let totalDeleted = 0;
+    const idSet = {};
+    ids.forEach(id => { if (id) idSet[String(id)] = true; });
+
+    targetSheets.forEach(sheet => {
+      const data = sheet.getDataRange().getValues();
+      if (!data.length) return;
+      const header = data[0];
+      const idIdx = header.indexOf('id');
+      if (idIdx < 0) return;
+
+      const rowsToDelete = [];
+      for (let r = 1; r < data.length; r++) {
+        const rowId = String(data[r][idIdx] || "");
+        if (idSet[rowId]) rowsToDelete.push(r + 1); // 1-based row index including header
+      }
+      // Delete from bottom to top to avoid shifting
+      rowsToDelete.sort((a,b) => b - a);
+      rowsToDelete.forEach(rowNum => {
+        sheet.deleteRow(rowNum);
+        totalDeleted++;
+      });
+    });
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: true, deleted: totalDeleted }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    const msg = (err && err.message) ? err.message : String(err);
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: msg }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 // Manual archive trigger (can be called from extension)

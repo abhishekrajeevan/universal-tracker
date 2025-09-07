@@ -61,33 +61,56 @@ async function flushOnce(){
   }
 
   try {
-    console.log('flushOnce: Sending batch to:', base + "?action=bulkUpsert");
-    const resp = await fetch(base + "?action=bulkUpsert", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ items: batch })
-    });
-    
-    console.log('flushOnce: Response status:', resp.status);
-    
-    if (!resp.ok) {
-      const errorText = await resp.text();
-      console.log('flushOnce: Error response:', errorText);
-      throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
+    // Split batch into deletes and upserts
+    const deletes = batch.filter(x => x && x.op === 'delete' && x.id);
+    const upserts = batch.filter(x => !x || x.op !== 'delete');
+
+    if (deletes.length) {
+      console.log('flushOnce: Sending deletes:', deletes.length);
+      const delResp = await fetch(base + "?action=bulkDelete", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ ids: deletes.map(d => d.id) })
+      });
+      if (!delResp.ok) {
+        const errorText = await delResp.text();
+        console.log('flushOnce: Delete error response:', errorText);
+        throw new Error("Delete HTTP " + delResp.status + ": " + errorText.substring(0, 200));
+      }
+      const delText = await delResp.text();
+      console.log('flushOnce: Delete response text:', delText);
+      try {
+        JSON.parse(delText);
+      } catch (e) {
+        throw new Error("Invalid JSON response from bulkDelete");
+      }
     }
-    
-    const responseText = await resp.text();
-    console.log('flushOnce: Response text:', responseText);
-    
-    let result;
-    try {
-      result = JSON.parse(responseText);
-    } catch (e) {
-      console.error('flushOnce: Failed to parse JSON:', responseText);
-      console.error('flushOnce: Full response:', responseText);
-      throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
+
+    if (upserts.length) {
+      console.log('flushOnce: Sending upserts:', upserts.length, 'to', base + "?action=bulkUpsert");
+      const resp = await fetch(base + "?action=bulkUpsert", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ items: upserts })
+      });
+      console.log('flushOnce: Upsert response status:', resp.status);
+      if (!resp.ok) {
+        const errorText = await resp.text();
+        console.log('flushOnce: Upsert error response:', errorText);
+        throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
+      }
+      const responseText = await resp.text();
+      console.log('flushOnce: Upsert response text:', responseText);
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('flushOnce: Failed to parse JSON:', responseText);
+        console.error('flushOnce: Full response:', responseText);
+        throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
+      }
+      console.log(`Synced ${result.upserted} items (${result.updated} updated, ${result.inserted} inserted)`);
     }
-    console.log(`Synced ${result.upserted} items (${result.updated} updated, ${result.inserted} inserted)`);
   } catch (e) {
     console.error("Sync failed:", e);
     // put items back if failed
