@@ -56,18 +56,7 @@
         padding: 20px;
       }
       
-      .page-meta {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 12px 16px;
-        margin-bottom: 20px;
-        font-size: 13px;
-        color: #64748b;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
+      .page-meta { display: none; }
       
       .page-meta::before {
         content: "🌐";
@@ -194,17 +183,23 @@
       }
       
       .footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
         padding: 16px 20px;
         background: #f8fafc;
         border-top: 1px solid #e2e8f0;
       }
       
-      .footer-links {
+      .footer-links { display: none; }
+
+      .open-all-row { display: flex; }
+      .open-all-row .btn { width: 100%; }
+
+      .toolbar {
         display: flex;
-        gap: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
       }
       
       .connection-status {
@@ -352,11 +347,11 @@
       }
       
       .category-icon {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         display: inline-block;
         text-align: center;
-        font-size: 12px;
+        font-size: 11px;
       }
       
       .loading {
@@ -493,13 +488,15 @@
           <span class="status-indicator" id="statusIndicator">⚪</span>
           <span class="status-text" id="statusText">Checking connection...</span>
         </div>
-        <a class="link" id="syncBtn" href="#">Sync</a>
-                <div class="footer-links">
-          <a class="link" id="openDashboard" href="#">Open All</a>
+        <div class="open-all-row">
+          <button class="btn btn-secondary" id="openDashboard">Open All Items</button>
+        </div>
+        <div class="toolbar">
+          <a class="link" id="syncBtn" href="#">Sync Now</a>
           <a class="link" id="exportBtn" href="#">Export</a>
           <a class="link" id="importBtn" href="#">Import</a>
           <a class="link" id="archiveBtn" href="#">Archive</a>
-          <a class="link" id="statsBtn" href="#">Stats</a>
+          <a class="link" id="statsBtn" href="#">View Stats</a>
         </div>
       </div>
 

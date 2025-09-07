@@ -46,6 +46,27 @@ function getPriorityIcon(priority) {
   return icons[priority] || '🟡';
 }
 
+// Inline SVG icons (ASCII-only) for robust rendering
+function categorySVG(category){
+  const base = {
+    Video: '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="7" r="6" fill="#EEF2FF"/><path d="M6 4.5L10 7L6 9.5V4.5Z" fill="#4F46E5"/></svg>',
+    Movie: '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="3" width="10" height="8" rx="1.5" fill="#EEF2FF" stroke="#4F46E5"/><path d="M4 3.5l2 2M6.5 3.5l2 2M9 3.5l2 2" stroke="#4F46E5" stroke-width="1"/></svg>',
+    TV: '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="4" width="10" height="6" rx="1.2" fill="#EEF2FF" stroke="#4F46E5"/><path d="M7 10.5v1.5" stroke="#4F46E5"/></svg>',
+    Trailer: '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="7" r="6" fill="#EEF2FF"/><path d="M5.5 4.3L9.5 7 5.5 9.7V4.3Z" fill="#4F46E5"/></svg>',
+    Blog: '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2.5" width="10" height="9" rx="1.2" fill="#EEF2FF" stroke="#4F46E5"/><path d="M4 5h6M4 7h6M4 9h4" stroke="#4F46E5" stroke-width="1"/></svg>',
+    Podcast: '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="7" r="3" fill="#4F46E5"/><circle cx="7" cy="7" r="5.5" fill="none" stroke="#EEF2FF"/><circle cx="7" cy="7" r="6" fill="none" stroke="#4F46E5" stroke-opacity=".25"/></svg>',
+    Book: '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><path d="M3 3.5h5a2 2 0 0 1 2 2v5.5H5a2 2 0 0 0-2 0V3.5Z" fill="#EEF2FF" stroke="#4F46E5"/></svg>',
+    Course: '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><path d="M2 6l5-3 5 3-5 3-5-3Z" fill="#EEF2FF" stroke="#4F46E5"/><path d="M11 6v3" stroke="#4F46E5"/></svg>',
+    Game: '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="5" width="9" height="4.5" rx="2" fill="#EEF2FF" stroke="#4F46E5"/><path d="M6 7h-2m1-1v2" stroke="#4F46E5"/><circle cx="9.5" cy="7" r=".8" fill="#4F46E5"/></svg>',
+    Other: '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="7" r="6" fill="#EEF2FF" stroke="#4F46E5"/></svg>'
+  };
+  return base[category] || base.Other;
+}
+
+function priorityDotSVG(priority){
+  const color = priority === 'high' ? '#EF4444' : (priority === 'low' ? '#10B981' : '#F59E0B');
+  return `<svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="4" fill="${color}"/></svg>`;
+}
 function formatReminderTime(timestamp) {
   if (!timestamp) return '';
   const date = new Date(timestamp);
@@ -244,6 +265,33 @@ function renderItems(items) {
         }
       }
     }
+    // Finalize UI: set clean labels, icons, and meta
+    try {
+      const toggleBtn2 = div.querySelector('button[data-act="toggle"]');
+      if (toggleBtn2) toggleBtn2.textContent = it.status === 'done' ? 'Mark To Do' : 'Mark Done';
+      const editBtn2 = div.querySelector('button[data-act="edit"]');
+      if (editBtn2) editBtn2.textContent = 'Edit';
+      const delBtn2 = div.querySelector('button[data-act="remove"]');
+      if (delBtn2) delBtn2.textContent = 'Delete';
+      const linkEl2 = div.querySelector('a.link');
+      if (linkEl2) linkEl2.textContent = 'Open';
+
+      const pill2 = div.querySelector('.status-pill');
+      if (pill2) { pill2.textContent = it.status === 'done' ? 'Done' : 'To Do'; pill2.className = `status-pill status-${it.status}`; }
+
+      const catEl2 = div.querySelector('.category-icon');
+      if (catEl2 && typeof categorySVG === 'function') catEl2.innerHTML = categorySVG(it.category || 'Other');
+
+      const metaEl2 = div.querySelector('.item-meta');
+      if (metaEl2) {
+        let html2 = `<span>${typeof priorityDotSVG==='function'?priorityDotSVG(it.priority || 'medium'):'•'} ${it.category || 'Other'}</span>`;
+        if (host) html2 += `<span>•</span><span>${host}</span>`;
+        if (it.tags && it.tags.length > 0) html2 += `<span>•</span><span>${it.tags.slice(0, 2).join(', ')}${it.tags.length > 2 ? '...' : ''}</span>`;
+        html2 += `${reminderDisplay}`;
+        metaEl2.innerHTML = html2;
+      }
+    } catch {}
+
     list.appendChild(div);
   }
   
