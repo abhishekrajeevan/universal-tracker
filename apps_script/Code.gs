@@ -10,6 +10,51 @@ const CONFIG = {
   HEADERS: ['id','title','url','status','category','priority','tags','notes','source','reminder_time','added_at','updated_at','completed_at']
 };
 
+// Ensure the sheet's header row matches CONFIG.HEADERS and realign existing data if needed
+function ensureSchema(sheet) {
+  if (!sheet) return;
+  const range = sheet.getDataRange();
+  const numRows = range.getNumRows();
+  const numCols = range.getNumColumns();
+  if (numRows === 0) {
+    // Empty sheet, just write headers
+    sheet.getRange(1, 1, 1, CONFIG.HEADERS.length).setValues([CONFIG.HEADERS]);
+    sheet.setFrozenRows(1);
+    return;
+  }
+
+  const data = range.getValues();
+  const currentHeader = (data[0] || []).map(String);
+  const desired = CONFIG.HEADERS;
+
+  // If headers already match (same order and names), nothing to do
+  if (currentHeader.length === desired.length && currentHeader.every((h, i) => h === desired[i])) {
+    return;
+  }
+
+  // Build mapping from old header -> index
+  const oldIndex = new Map();
+  currentHeader.forEach((h, i) => oldIndex.set(String(h), i));
+
+  // Rebuild all rows to desired order
+  const rebuilt = [desired];
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    const next = desired.map(h => {
+      if (oldIndex.has(h)) {
+        return row[oldIndex.get(h)];
+      }
+      return "";
+    });
+    rebuilt.push(next);
+  }
+
+  // Clear old data and write back in desired shape
+  sheet.clear();
+  sheet.getRange(1, 1, rebuilt.length, desired.length).setValues(rebuilt);
+  sheet.setFrozenRows(1);
+}
+
 // Initialize spreadsheet with proper structure
 function initializeSpreadsheet() {
   const ss = SpreadsheetApp.getActive();
@@ -44,6 +89,9 @@ function initializeSpreadsheet() {
     activeSheet.setColumnWidth(12, 150); // Updated at
     activeSheet.setColumnWidth(13, 150); // Completed at
   }
+
+  // Always ensure schema is up to date (handles existing sheets)
+  ensureSchema(activeSheet);
   
   return activeSheet;
 }
@@ -68,7 +116,25 @@ function getArchiveSheet(year, month) {
     archiveSheet.setFrozenRows(1);
   }
   
+  // Ensure archive sheet schema is up to date as well
+  ensureSchema(archiveSheet);
+  
   return archiveSheet;
+}
+
+// Migrate headers for all relevant sheets (active + archives)
+function migrateAllSheets() {
+  const ss = SpreadsheetApp.getActive();
+  const sheets = ss.getSheets();
+  sheets.forEach(sheet => {
+    const name = sheet.getName();
+    if (name === CONFIG.ACTIVE_SHEET || name.indexOf(CONFIG.ARCHIVE_SHEET_PREFIX) === 0) {
+      ensureSchema(sheet);
+    }
+  });
+  return ContentService
+    .createTextOutput(JSON.stringify({ ok: true, migrated: true }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // Archive old items to reduce active sheet size
@@ -87,8 +153,10 @@ function archiveOldItems() {
   const itemsToArchive = [];
   const itemsToKeep = [header];
   
+  const headerRow = header; // from data[0]
+  const addedIdx = headerRow.indexOf('added_at');
   rows.forEach(row => {
-    const addedAt = new Date(row[10]); // added_at column (updated index)
+    const addedAt = addedIdx >= 0 ? new Date(row[addedIdx]) : new Date(row[0]);
     if (addedAt < cutoffDate) {
       itemsToArchive.push(row);
     } else {
@@ -100,8 +168,9 @@ function archiveOldItems() {
   
   // Group items by month for archiving
   const archiveGroups = {};
+  const archiveKeyIdx = addedIdx;
   itemsToArchive.forEach(row => {
-    const date = new Date(row[10]);
+    const date = archiveKeyIdx >= 0 ? new Date(row[archiveKeyIdx]) : new Date();
     const key = `${date.getFullYear()}_${(date.getMonth() + 1).toString().padStart(2, '0')}`;
     if (!archiveGroups[key]) archiveGroups[key] = [];
     archiveGroups[key].push(row);
@@ -278,7 +347,8 @@ function getItems(limit = 1000, offset = 0, category = null, status = null, prio
 function doGet(e) {
   // Handle extra path segments (e.g., /getStats)
   const pathInfo = e && e.pathInfo ? e.pathInfo.toString() : "";
-  if (pathInfo === "getStats") {
+  const path = pathInfo.replace(/^\//, "");
+  if (path === "getStats") {
     return getStats();
   }
 
@@ -296,11 +366,15 @@ function doGet(e) {
 function doPost(e) {
   // Handle extra path segments (e.g., /bulkUpsert, /triggerArchive)
   const pathInfo = e && e.pathInfo ? e.pathInfo.toString() : "";
-  if (pathInfo === "bulkUpsert") {
+  const path = pathInfo.replace(/^\//, "");
+  if (path === "bulkUpsert") {
     return handleBulkUpsert(e);
   }
-  if (pathInfo === "triggerArchive") {
+  if (path === "triggerArchive") {
     return triggerArchive();
+  }
+  if (path === "migrate") {
+    return migrateAllSheets();
   }
 
   // Default behaviour: parse body and perform bulk upsert
