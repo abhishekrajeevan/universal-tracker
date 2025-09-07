@@ -225,6 +225,25 @@ function renderItems(items) {
         ${it.url ? `<a class="link" href="${it.url}" target="_blank">🔗 Open</a>` : ''}
       </div>
     `;
+    // Clean labels and hide host bullet when URL absent
+    const toggleBtn = div.querySelector('button[data-act="toggle"]');
+    if (toggleBtn) toggleBtn.textContent = it.status === 'done' ? '↺ Mark To Do' : '✓ Mark Done';
+    const editBtn = div.querySelector('button[data-act="edit"]');
+    if (editBtn) editBtn.textContent = '✎ Edit';
+    const delBtn = div.querySelector('button[data-act="remove"]');
+    if (delBtn) delBtn.textContent = '🗑 Delete';
+    const linkEl = div.querySelector('a.link');
+    if (linkEl) linkEl.textContent = 'Open';
+    if (!host) {
+      const metaEl = div.querySelector('.item-meta');
+      if (metaEl) {
+        const spans = metaEl.querySelectorAll('span');
+        if (spans.length >= 3 && !spans[2].textContent.trim()) {
+          if (spans[1]) spans[1].remove();
+          if (spans[2]) spans[2].remove();
+        }
+      }
+    }
     list.appendChild(div);
   }
   
@@ -741,3 +760,27 @@ async function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 
+
+// Override icon helpers with clean emoji for a consistent UI in the popup
+// eslint-disable-next-line no-func-assign
+getCategoryIcon = function(category) {
+  const icons = {
+    'Movie': '??',
+    'TV': '??',
+    'Trailer': '???',
+    'Video': '??',
+    'Blog': '??',
+    'Podcast': '??',
+    'Book': '??',
+    'Course': '??',
+    'Game': '??',
+    'Other': '??'
+  };
+  return icons[category] || '??';
+};
+
+// eslint-disable-next-line no-func-assign
+getPriorityIcon = function(priority) {
+  const icons = { low: '??', medium: '??', high: '??' };
+  return icons[priority] || '??';
+};
