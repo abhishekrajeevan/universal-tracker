@@ -253,25 +253,53 @@ function getItems(limit = 1000, offset = 0, category = null, status = null) {
 
 // Legacy endpoints for backward compatibility
 function doGet(e) {
-  const {limit, offset, category, status} = e.parameter || {};
+  // Handle extra path segments (e.g., /getStats)
+  const pathInfo = e && e.pathInfo ? e.pathInfo.toString() : "";
+  if (pathInfo === "getStats") {
+    return getStats();
+  }
+
+  // Default behaviour: list items with optional filters
+  const { limit, offset, category, status } = e.parameter || {};
   return getItems(
-    limit ? parseInt(limit) : 1000,
-    offset ? parseInt(offset) : 0,
-    category,
-    status
+    limit ? parseInt(limit, 10) : 1000,
+    offset ? parseInt(offset, 10) : 0,
+    category || null,
+    status || null
   );
 }
 
 function doPost(e) {
+  // Handle extra path segments (e.g., /bulkUpsert, /triggerArchive)
+  const pathInfo = e && e.pathInfo ? e.pathInfo.toString() : "";
+  if (pathInfo === "bulkUpsert") {
+    return handleBulkUpsert(e);
+  }
+  if (pathInfo === "triggerArchive") {
+    return triggerArchive();
+  }
+
+  // Default behaviour: parse body and perform bulk upsert
   const body = JSON.parse(e.postData && e.postData.contents || "{}");
   const items = body.items || (body.item ? [body.item] : []);
   return bulkUpsert(items);
 }
 
 // New endpoint for bulk operations
-function bulkUpsert(e) {
-  const body = JSON.parse(e.postData && e.postData.contents || "{}");
-  const items = body.items || [];
+// -----------------------------------------------------------------------------
+// Routing helper for bulk upsert requests
+//
+// Note: Google Apps Script only exposes doGet/doPost on the root /exec URL.
+//       Any additional path segments (e.pathInfo) must be handled manually.
+//       This helper parses the request body and forwards it to the primary
+//       bulkUpsert(items) implementation defined above.
+//
+// Keep in mind that using a duplicate function name (bulkUpsert) here would
+//       overwrite the main upsert implementation, causing infinite recursion.
+//       Therefore, we provide this wrapper with a distinct name.
+function handleBulkUpsert(e) {
+  const body  = JSON.parse(e.postData && e.postData.contents || "{}");
+  const items = body.items || (body.item ? [body.item] : []);
   return bulkUpsert(items);
 }
 
