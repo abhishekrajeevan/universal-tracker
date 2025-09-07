@@ -61,8 +61,8 @@ async function flushOnce(){
   }
 
   try {
-    console.log('flushOnce: Sending batch to:', base + "/bulkUpsert");
-    const resp = await fetch(base + "/bulkUpsert", {
+    console.log('flushOnce: Sending batch to:', base + "?action=bulkUpsert");
+    const resp = await fetch(base + "?action=bulkUpsert", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ items: batch })
@@ -242,15 +242,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           return;
         }
         
-        const resp = await fetch(base + "/triggerArchive", {
+        const resp = await fetch(base + "?action=triggerArchive", {
           method: "POST",
           headers: {"Content-Type":"application/json"}
         });
         
         if (!resp.ok) {
           const errorText = await resp.text();
-          console.log('TRIGGER_ARCHIVE: Error response:', errorText);
-          throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
+        console.log('TRIGGER_ARCHIVE: Error response:', errorText);
+        throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
         }
         
         const responseText = await resp.text();
@@ -282,8 +282,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           return;
         }
         
-        console.log('GET_STATS: Fetching from:', base + "/getStats");
-        const resp = await fetch(base + "/getStats", {
+        console.log('GET_STATS: Fetching from:', base + "?action=getStats");
+        const resp = await fetch(base + "?action=getStats", {
           method: "GET"
         });
         

@@ -211,6 +211,7 @@ function checkAndArchive() {
 
 // Optimized bulk upsert with batching
 function bulkUpsert(items) {
+  try {
   if (!items || items.length === 0) {
     return ContentService
       .createTextOutput(JSON.stringify({ok: true, upserted: 0}))
@@ -223,7 +224,7 @@ function bulkUpsert(items) {
   
   // Get existing data in batches to avoid memory issues
   const lastRow = activeSheet.getLastRow();
-  let existingIds = new Map();
+  var existingIndexById = {};
   
   if (lastRow > 1) {
     // Read in chunks to avoid memory issues with large sheets
@@ -231,9 +232,10 @@ function bulkUpsert(items) {
     for (let startRow = 2; startRow <= lastRow; startRow += chunkSize) {
       const endRow = Math.min(startRow + chunkSize - 1, lastRow);
       const chunk = activeSheet.getRange(startRow, idIdx + 1, endRow - startRow + 1, 1).getValues();
-      chunk.forEach((row, index) => {
-        existingIds.set(String(row[0]), startRow + index);
-      });
+      for (var ci = 0; ci < chunk.length; ci++) {
+        var idCell = String(chunk[ci][0] || "");
+        if (idCell) existingIndexById[idCell] = startRow + ci;
+      }
     }
   }
   
@@ -252,7 +254,7 @@ function bulkUpsert(items) {
       }
       return "";
     });
-    const existingRow = existingIds.get(String(item.id));
+    const existingRow = existingIndexById[String(item.id)];
     
     if (existingRow) {
       updates.push({row: existingRow, data: row});
@@ -288,6 +290,12 @@ function bulkUpsert(items) {
       inserted: inserts.length
     }))
     .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    const msg = (err && err.message) ? err.message : String(err);
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: msg }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 // Get items with pagination support
@@ -345,10 +353,12 @@ function getItems(limit = 1000, offset = 0, category = null, status = null, prio
 
 // Legacy endpoints for backward compatibility
 function doGet(e) {
-  // Handle extra path segments (e.g., /getStats)
+  try {
+  // Handle extra path segments or action param (e.g., /getStats or ?action=getStats)
   const pathInfo = e && e.pathInfo ? e.pathInfo.toString() : "";
   const path = pathInfo.replace(/^\//, "");
-  if (path === "getStats") {
+  const action = (e && e.parameter && e.parameter.action) || path;
+  if (action === "getStats") {
     return getStats();
   }
 
@@ -361,19 +371,27 @@ function doGet(e) {
     status || null,
     priority || null
   );
+  } catch (err) {
+    const msg = (err && err.message) ? err.message : String(err);
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: msg }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 function doPost(e) {
-  // Handle extra path segments (e.g., /bulkUpsert, /triggerArchive)
+  try {
+  // Handle extra path segments or action param (e.g., /bulkUpsert or ?action=bulkUpsert)
   const pathInfo = e && e.pathInfo ? e.pathInfo.toString() : "";
   const path = pathInfo.replace(/^\//, "");
-  if (path === "bulkUpsert") {
+  const action = (e && e.parameter && e.parameter.action) || path;
+  if (action === "bulkUpsert") {
     return handleBulkUpsert(e);
   }
-  if (path === "triggerArchive") {
+  if (action === "triggerArchive") {
     return triggerArchive();
   }
-  if (path === "migrate") {
+  if (action === "migrate") {
     return migrateAllSheets();
   }
 
@@ -381,6 +399,12 @@ function doPost(e) {
   const body = JSON.parse(e.postData && e.postData.contents || "{}");
   const items = body.items || (body.item ? [body.item] : []);
   return bulkUpsert(items);
+  } catch (err) {
+    const msg = (err && err.message) ? err.message : String(err);
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: msg }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 // Routing helper for bulk upsert requests
