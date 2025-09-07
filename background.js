@@ -84,7 +84,8 @@ async function flushOnce(){
       result = JSON.parse(responseText);
     } catch (e) {
       console.error('flushOnce: Failed to parse JSON:', responseText);
-      throw new Error("Invalid JSON response: " + responseText.substring(0, 200));
+      console.error('flushOnce: Full response:', responseText);
+      throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
     }
     console.log(`Synced ${result.upserted} items (${result.updated} updated, ${result.inserted} inserted)`);
   } catch (e) {
@@ -132,8 +133,24 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
         headers: {"Content-Type":"application/json"}
       });
       
-      if (!resp.ok) throw new Error("HTTP " + resp.status);
-      const result = await resp.json();
+      if (!resp.ok) {
+        const errorText = await resp.text();
+        console.log('TRIGGER_ARCHIVE: Error response:', errorText);
+        throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
+      }
+      
+      const responseText = await resp.text();
+      console.log('TRIGGER_ARCHIVE: Response text:', responseText);
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('TRIGGER_ARCHIVE: Failed to parse JSON:', responseText);
+        console.error('TRIGGER_ARCHIVE: Full response:', responseText);
+        throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
+      }
+      
       sendResponse({success: true, message: result.message});
     } catch(e) {
       sendResponse({success: false, error: e.message});
