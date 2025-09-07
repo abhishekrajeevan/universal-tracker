@@ -184,8 +184,9 @@ function renderItems(items) {
   }
   
   const sorted = items.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
-  for (const it of sorted) {
-    const host = (it.source || (it.url ? new URL(it.url).hostname : ''));
+  const toRender = sorted.slice(0, 3);
+  for (const it of toRender) {
+    const host = (it.url ? new URL(it.url).hostname : '');
     const div = document.createElement('div');
     div.className = `item ${editingItemId === it.id ? 'edit-mode' : ''}`;
     
@@ -588,6 +589,16 @@ async function init() {
     }
   };
 
+  // Open dashboard (full list) in a new tab
+  const dashLink = document.getElementById('openDashboard');
+  if (dashLink) {
+    dashLink.onclick = (e) => {
+      e.preventDefault();
+      const url = chrome.runtime.getURL('dashboard.html');
+      chrome.tabs.create({ url });
+    };
+  }
+
   // Import functionality
   document.getElementById('importBtn').onclick = async () => {
     const input = document.createElement('input');
@@ -729,3 +740,4 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
