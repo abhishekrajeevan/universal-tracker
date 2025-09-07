@@ -110,102 +110,105 @@ async function syncLoop(){
   } finally { syncing = false; }
 }
 
-// messages from popup
-chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
+// messages from popup - FIXED: Return true and use async sendResponse properly
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   console.log('Background received message:', msg);
   
   if (msg?.type === "TEST") {
     console.log('TEST: Sending test response');
     sendResponse({success: true, message: "Test successful"});
-    return true;
   } else if (msg?.type === "SYNC_NOW") {
-    try { 
-      console.log('SYNC_NOW: Starting sync...');
-      await syncLoop(); 
-      console.log('SYNC_NOW: Sync completed successfully');
-      sendResponse({success: true});
-    } catch(e) {
-      console.log('SYNC_NOW: Sync failed:', e.message);
-      sendResponse({success: false, error: e.message});
-    }
+    (async () => {
+      try { 
+        console.log('SYNC_NOW: Starting sync...');
+        await syncLoop(); 
+        console.log('SYNC_NOW: Sync completed successfully');
+        sendResponse({success: true});
+      } catch(e) {
+        console.log('SYNC_NOW: Sync failed:', e.message);
+        sendResponse({success: false, error: e.message});
+      }
+    })();
   } else if (msg?.type === "TRIGGER_ARCHIVE") {
-    try {
-      const opts = (await getLocal(OPTS_KEY)) || {};
-      const base = opts.apps_script_url;
-      if (!base) {
-        sendResponse({success: false, error: "No Apps Script URL configured"});
-        return true;
-      }
-      
-      const resp = await fetch(base + "/triggerArchive", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"}
-      });
-      
-      if (!resp.ok) {
-        const errorText = await resp.text();
-        console.log('TRIGGER_ARCHIVE: Error response:', errorText);
-        throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
-      }
-      
-      const responseText = await resp.text();
-      console.log('TRIGGER_ARCHIVE: Response text:', responseText);
-      
-      let result;
+    (async () => {
       try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        console.error('TRIGGER_ARCHIVE: Failed to parse JSON:', responseText);
-        console.error('TRIGGER_ARCHIVE: Full response:', responseText);
-        throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
+        const opts = (await getLocal(OPTS_KEY)) || {};
+        const base = opts.apps_script_url;
+        if (!base) {
+          sendResponse({success: false, error: "No Apps Script URL configured"});
+          return;
+        }
+        
+        const resp = await fetch(base + "/triggerArchive", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"}
+        });
+        
+        if (!resp.ok) {
+          const errorText = await resp.text();
+          console.log('TRIGGER_ARCHIVE: Error response:', errorText);
+          throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
+        }
+        
+        const responseText = await resp.text();
+        console.log('TRIGGER_ARCHIVE: Response text:', responseText);
+        
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (e) {
+          console.error('TRIGGER_ARCHIVE: Failed to parse JSON:', responseText);
+          console.error('TRIGGER_ARCHIVE: Full response:', responseText);
+          throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
+        }
+        
+        sendResponse({success: true, message: result.message});
+      } catch(e) {
+        sendResponse({success: false, error: e.message});
       }
-      
-      sendResponse({success: true, message: result.message});
-    } catch(e) {
-      sendResponse({success: false, error: e.message});
-    }
-    return true;
+    })();
   } else if (msg?.type === "GET_STATS") {
-    try {
-      console.log('GET_STATS: Starting request...');
-      const opts = (await getLocal(OPTS_KEY)) || {};
-      const base = opts.apps_script_url;
-      if (!base) {
-        console.log('GET_STATS: No Apps Script URL configured');
-        sendResponse({success: false, error: "No Apps Script URL configured"});
-        return true;
-      }
-      
-      console.log('GET_STATS: Fetching from:', base + "/getStats");
-      const resp = await fetch(base + "/getStats", {
-        method: "GET"
-      });
-      
-      if (!resp.ok) {
-        const errorText = await resp.text();
-        console.log('GET_STATS: Error response:', errorText);
-        throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
-      }
-      
-      const responseText = await resp.text();
-      console.log('GET_STATS: Response text:', responseText);
-      
-      let result;
+    (async () => {
       try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        console.error('GET_STATS: Failed to parse JSON:', responseText);
-        console.error('GET_STATS: Full response:', responseText);
-        throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
+        console.log('GET_STATS: Starting request...');
+        const opts = (await getLocal(OPTS_KEY)) || {};
+        const base = opts.apps_script_url;
+        if (!base) {
+          console.log('GET_STATS: No Apps Script URL configured');
+          sendResponse({success: false, error: "No Apps Script URL configured"});
+          return;
+        }
+        
+        console.log('GET_STATS: Fetching from:', base + "/getStats");
+        const resp = await fetch(base + "/getStats", {
+          method: "GET"
+        });
+        
+        if (!resp.ok) {
+          const errorText = await resp.text();
+          console.log('GET_STATS: Error response:', errorText);
+          throw new Error("HTTP " + resp.status + ": " + errorText.substring(0, 200));
+        }
+        
+        const responseText = await resp.text();
+        console.log('GET_STATS: Response text:', responseText);
+        
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (e) {
+          console.error('GET_STATS: Failed to parse JSON:', responseText);
+          console.error('GET_STATS: Full response:', responseText);
+          throw new Error("Invalid JSON response. Apps Script returned HTML instead of JSON. Check your deployment.");
+        }
+        
+        console.log('GET_STATS: Sending response:', {success: true, stats: result});
+        sendResponse({success: true, stats: result});
+      } catch(e) {
+        console.log('GET_STATS: Error occurred:', e.message);
+        sendResponse({success: false, error: e.message});
       }
-      
-      console.log('GET_STATS: Sending response:', {success: true, stats: result});
-      sendResponse({success: true, stats: result});
-    } catch(e) {
-      console.log('GET_STATS: Error occurred:', e.message);
-      sendResponse({success: false, error: e.message});
-    }
-    return true;
+    })();
   } else if (msg?.type === "UPSERT_ITEM") {
     // not used in this scaffold (popup writes to local + queue directly)
   }
@@ -213,12 +216,20 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
   return true; // Keep message channel open for async response
 });
 
-// periodic alarm for autosync
+// FIXED: Auto-sync alarm handling with proper error handling and config check
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   console.log('Alarm triggered:', alarm.name);
   if (alarm.name === "autosync") {
     try { 
       console.log('Auto-sync triggered by alarm');
+      
+      // Check if Apps Script URL is configured before trying to sync
+      const opts = (await getLocal(OPTS_KEY)) || {};
+      if (!opts.apps_script_url) {
+        console.log('Auto-sync skipped: No Apps Script URL configured');
+        return;
+      }
+      
       await syncLoop(); 
       console.log('Auto-sync completed');
     } catch(e) {
@@ -227,10 +238,38 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
+// FIXED: Proper alarm setup on install/startup
 chrome.runtime.onInstalled.addListener(async () => {
+  console.log('Extension installed/updated');
+  await setupAutoSync();
+});
+
+chrome.runtime.onStartup.addListener(async () => {
+  console.log('Extension started');
+  await setupAutoSync();
+});
+
+async function setupAutoSync() {
   const opts = (await getLocal(OPTS_KEY)) || { autosync_mins: 10 };
   await setLocal(OPTS_KEY, opts);
+  
+  // Clear existing alarm first
+  await chrome.alarms.clear("autosync");
+  
   const interval = Math.max(5, Number(opts.autosync_mins||10));
-  console.log('Creating autosync alarm with interval:', interval, 'minutes');
-  chrome.alarms.create("autosync", { periodInMinutes: interval });
-});
+  console.log('Setting up autosync alarm with interval:', interval, 'minutes');
+  
+  // Create alarm with proper periodInMinutes
+  await chrome.alarms.create("autosync", { 
+    periodInMinutes: interval,
+    delayInMinutes: interval // Start first sync after interval
+  });
+  
+  // Verify alarm was created
+  const alarm = await chrome.alarms.get("autosync");
+  if (alarm) {
+    console.log('Autosync alarm created successfully:', alarm);
+  } else {
+    console.error('Failed to create autosync alarm');
+  }
+}

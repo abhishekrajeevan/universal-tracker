@@ -99,6 +99,7 @@ function renderItems(items) {
   };
 }
 
+// FIXED: Improved connection status check with timeout and better error handling
 async function checkConnectionStatus() {
   const statusIndicator = document.getElementById('statusIndicator');
   const statusText = document.getElementById('statusText');
@@ -107,8 +108,16 @@ async function checkConnectionStatus() {
   try {
     console.log('Sending GET_STATS message...');
     
+    // Add timeout to prevent hanging
     const response = await new Promise((resolve, reject) => {
+      // Set timeout
+      const timeout = setTimeout(() => {
+        reject(new Error('Request timeout - connection check took too long'));
+      }, 10000); // 10 second timeout
+      
       chrome.runtime.sendMessage({ type: 'GET_STATS' }, (response) => {
+        clearTimeout(timeout);
+        
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message));
         } else {
@@ -130,9 +139,37 @@ async function checkConnectionStatus() {
   } catch (error) {
     console.log('Connection error:', error);
     statusIndicator.textContent = '🔴';
-    statusText.textContent = 'Not connected';
+    
+    // More specific error messages
+    if (error.message.includes('timeout')) {
+      statusText.textContent = 'Connection timeout';
+    } else if (error.message.includes('No Apps Script URL')) {
+      statusText.textContent = 'Not configured';
+    } else {
+      statusText.textContent = 'Connection failed';
+    }
+    
     connectionStatus.className = 'connection-status disconnected';
   }
+}
+
+// FIXED: Helper function to send messages with proper error handling
+async function sendMessageWithTimeout(message, timeout = 10000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Message timeout - background script may be unresponsive'));
+    }, timeout);
+    
+    chrome.runtime.sendMessage(message, (response) => {
+      clearTimeout(timer);
+      
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else {
+        resolve(response);
+      }
+    });
+  });
 }
 
 async function init() {
@@ -151,8 +188,8 @@ async function init() {
     const connectionStatus = document.getElementById('connectionStatus');
     
     statusIndicator.textContent = '⚪';
-    statusText.textContent = 'Checking...';
-    connectionStatus.className = 'connection-status';
+    statusText.textContent = 'Connection check failed';
+    connectionStatus.className = 'connection-status disconnected';
   });
 
   document.getElementById('saveBtn').onclick = async () => {
@@ -264,6 +301,7 @@ async function init() {
     input.click();
   };
 
+  // FIXED: Improved sync button with better error handling
   document.getElementById('syncBtn').onclick = async () => {
     const syncBtn = document.getElementById('syncBtn');
     const originalText = syncBtn.innerHTML;
@@ -273,15 +311,7 @@ async function init() {
     
     try {
       console.log('Starting sync...');
-      const response = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: 'SYNC_NOW' }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
-      });
+      const response = await sendMessageWithTimeout({ type: 'SYNC_NOW' }, 15000);
       console.log('Sync response:', response);
       
       if (response && response.success) {
@@ -298,6 +328,12 @@ async function init() {
     } catch (error) {
       console.log('Sync error:', error);
       syncBtn.innerHTML = '❌ Error';
+      
+      // Show more specific error message
+      if (error.message.includes('timeout')) {
+        console.error('Sync timeout - this may indicate the sync is still running in the background');
+      }
+      
       setTimeout(() => {
         syncBtn.innerHTML = originalText;
         syncBtn.style.pointerEvents = 'auto';
@@ -305,6 +341,7 @@ async function init() {
     }
   };
 
+  // FIXED: Improved archive button
   document.getElementById('archiveBtn').onclick = async () => {
     const archiveBtn = document.getElementById('archiveBtn');
     const originalText = archiveBtn.innerHTML;
@@ -313,15 +350,7 @@ async function init() {
     archiveBtn.style.pointerEvents = 'none';
     
     try {
-      const response = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: 'TRIGGER_ARCHIVE' }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
-      });
+      const response = await sendMessageWithTimeout({ type: 'TRIGGER_ARCHIVE' }, 20000);
       
       if (response && response.success) {
         archiveBtn.innerHTML = '✅ Archived!';
@@ -341,6 +370,7 @@ async function init() {
     }
   };
 
+  // FIXED: Improved stats button
   document.getElementById('statsBtn').onclick = async () => {
     const statsBtn = document.getElementById('statsBtn');
     const originalText = statsBtn.innerHTML;
@@ -349,15 +379,7 @@ async function init() {
     statsBtn.style.pointerEvents = 'none';
     
     try {
-      const response = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: 'GET_STATS' }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
-      });
+      const response = await sendMessageWithTimeout({ type: 'GET_STATS' }, 10000);
       
       if (response && response.success) {
         const stats = response.stats;
