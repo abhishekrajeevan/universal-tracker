@@ -72,7 +72,7 @@
 
       /* Compact mode */
       body.compact .container { padding: 14px; }
-      body.compact .filters { gap: 8px; }
+      body.compact .filters { gap: 8px; grid-template-columns: 1fr 110px 130px 100px 140px 1fr; }
       body.compact .filters input, 
       body.compact .filters select { padding: 10px 12px; border-radius: 8px; }
       body.compact .item { padding: 10px; border-radius: 10px; }
@@ -92,6 +92,7 @@
         <label style="display:flex;align-items:center;gap:6px;margin-left:8px;font-weight:600;">
           <input type="checkbox" id="compactToggle" /> Compact
         </label>
+        <button id="resetFilters" class="btn btn-secondary" title="Reset filters">Reset</button>
       </div>
     </div>
     <div class="container">

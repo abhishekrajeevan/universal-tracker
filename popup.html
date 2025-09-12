@@ -269,6 +269,13 @@
         border-radius: 12px;
         border: 1px solid #e2e8f0;
       }
+
+      /* Modal */
+      .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:9999}
+      .modal{background:#fff;border-radius:14px;box-shadow:0 20px 40px rgba(0,0,0,.25);width:86%;max-width:360px}
+      .modal header{padding:12px 16px;border-bottom:1px solid #e5e7eb;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+      .modal .body{padding:14px 16px;font-size:13px;color:#374151}
+      .modal .footer{padding:12px 16px;border-top:1px solid #e5e7eb;text-align:right}
       
       .list::-webkit-scrollbar {
         width: 6px;
@@ -513,6 +520,20 @@
       </div>
 
       <div class="list" id="list"></div>
+      
+      <!-- Stats Modal -->
+      <div id="statsModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
+        <div class="modal">
+          <header>
+            <span id="statsTitle">Storage Statistics</span>
+            <button id="statsClose" class="btn btn-small btn-secondary">Close</button>
+          </header>
+          <div class="body" id="statsContent">Loading…</div>
+          <div class="footer">
+            <button id="statsClose2" class="btn btn-small btn-secondary">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="shared/utils.js"></script>

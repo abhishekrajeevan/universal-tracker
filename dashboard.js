@@ -198,8 +198,9 @@ async function init() {
     const items = await getAllItems();
     const blob = new Blob([JSON.stringify({ items }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    if (chrome.downloads) chrome.downloads.download({ url, filename: 'universal-tracker-export.json' });
-    else window.open(url);
+    if (chrome.downloads) { const downloadId = await new Promise(resolve => chrome.downloads.download({ url, filename: 'universal-tracker-export.json' }, resolve)); try { const listener = (delta) => { if (delta && delta.id === downloadId && delta.state && delta.state.current === 'complete') { if (window.showToast) showToast('Exported', 'success'); chrome.downloads.onChanged.removeListener(listener); } }; chrome.downloads.onChanged.addListener(listener); } catch {} } else { window.open(url); if (window.showToast) showToast('Exported', 'success'); }
+
+
   };
 
   document.getElementById('importBtn').onclick = async () => {
@@ -230,6 +231,16 @@ async function init() {
     const items = await getAllItems();
     applyFiltersAndRender(items);
   }));
+
+  // Reset filters
+  const resetBtn = document.getElementById('resetFilters');
+  if (resetBtn) resetBtn.addEventListener('click', async () => {
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    setVal('search',''); setVal('status',''); setVal('category',''); setVal('priority',''); setVal('sort','updated_desc'); setVal('tags','');
+    const items = await getAllItems();
+    applyFiltersAndRender(items);
+    if (window.showToast) showToast('Filters reset', 'success');
+  });
 
   // Initial data
   const items = await getAllItems();

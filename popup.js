@@ -509,6 +509,15 @@ async function init() {
     }
   } catch {}
 
+  // Stats modal close handlers
+  try {
+    const statsModal = document.getElementById('statsModal');
+    const onClose = () => { if (statsModal) statsModal.style.display = 'none'; };
+    document.getElementById('statsClose')?.addEventListener('click', onClose);
+    document.getElementById('statsClose2')?.addEventListener('click', onClose);
+    statsModal?.addEventListener('click', (e) => { if (e.target === statsModal) onClose(); });
+  } catch {}
+
   const items = await localAdapter.getAll();
   
   // Build tag cache for autocomplete
@@ -665,9 +674,19 @@ async function init() {
     const blob = new Blob([JSON.stringify({ items }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     if (chrome.downloads) {
-      chrome.downloads.download({ url, filename: 'universal-tracker-export.json' });
+      const downloadId = await new Promise(resolve => chrome.downloads.download({ url, filename: 'universal-tracker-export.json' }, resolve));
+      try {
+        const listener = (delta) => {
+          if (delta && delta.id === downloadId && delta.state && delta.state.current === 'complete') {
+            try { if (window.showToast) showToast('Exported', 'success'); } catch {}
+            chrome.downloads.onChanged.removeListener(listener);
+          }
+        };
+        chrome.downloads.onChanged.addListener(listener);
+      } catch {}
     } else {
       window.open(url);
+      try { if (window.showToast) showToast('Exported', 'success'); } catch {}
     }
   };
 
@@ -728,7 +747,8 @@ async function init() {
       console.log('Sync response:', response);
       
       if (response && response.success) {
-        syncBtn.innerHTML = '✅ Synced!';
+        syncBtn.innerHTML = '? Synced!';
+        try { if (window.showToast) showToast('Synced', 'success'); } catch {}
         await checkConnectionStatus();
         setTimeout(() => {
           syncBtn.innerHTML = originalText;
@@ -794,19 +814,25 @@ async function init() {
       
       if (response && response.success) {
         const stats = response.stats;
-        alert(`📊 Storage Statistics:\n\n` +
-              `Active Items: ${stats.active}\n` +
-              `Archived Items: ${stats.archived}\n` +
-              `Total Items: ${stats.total}\n` +
-              `Archive Sheets: ${stats.archiveSheets}`);
+        const modal = document.getElementById('statsModal');
+        const content = document.getElementById('statsContent');
+        if (modal && content) {
+          content.innerHTML = `
+            <div><strong>Active Items:</strong> ${stats.active}</div>
+            <div><strong>Archived Items:</strong> ${stats.archived}</div>
+            <div><strong>Total Items:</strong> ${stats.total}</div>
+            <div><strong>Archive Sheets:</strong> ${stats.archiveSheets}</div>
+          `;
+          modal.style.display = 'flex';
+        }
+        try { if (window.showToast) showToast('Stats loaded', 'success'); } catch {}
         
         statsBtn.innerHTML = originalText;
         statsBtn.style.pointerEvents = 'auto';
       } else {
         throw new Error((response && response.error) || 'Failed to get stats');
       }
-    } catch (error) {
-      alert(`Error getting statistics: ${error.message}`);
+    } catch (error) {      try { if (window.showToast) showToast('Stats failed: ' + error.message, 'error'); } catch {}
       statsBtn.innerHTML = originalText;
       statsBtn.style.pointerEvents = 'auto';
     }
@@ -847,5 +873,10 @@ getPriorityIcon = function(priority) {
   const icons = { low: '??', medium: '??', high: '??' };
   return icons[priority] || '??';
 };
+
+
+
+
+
 
 
