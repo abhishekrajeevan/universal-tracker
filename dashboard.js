@@ -39,9 +39,10 @@ function uniqueTags(items) {
 function renderTagChips(allTags, onPick) {
   const wrap = document.getElementById('tagChips');
   wrap.innerHTML = '';
-  allTags.slice(0, 30).forEach(t => {
+  const current = new Set((document.getElementById('tags').value||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean));
+  allTags.slice(0, 50).forEach(t => {
     const btn = document.createElement('button');
-    btn.className = 'chip';
+    btn.className = 'chip' + (current.has(t.toLowerCase()) ? ' selected' : '');
     btn.textContent = t;
     btn.onclick = () => onPick(t);
     wrap.appendChild(btn);
@@ -98,9 +99,11 @@ function renderList(items, sortKey) {
         ${(it.tags && it.tags.length) ? `<span>• ${it.tags.join(', ')}</span>` : ''}
         ${(it.reminder_time) ? `<span>• Reminder: ${new Date(it.reminder_time).toLocaleString()}</span>` : ''}
       </div>
+      ${it.notes ? `<div class="notes">${it.notes.length>500?it.notes.slice(0,500)+"…":it.notes}</div>` : ''}
       <div class="item-actions">
         <button class="action-btn ${it.status==='done'?'':'solid'}" data-act="toggle" data-id="${it.id}">${it.status==='done'?'Mark To Do':'Mark Done'}</button>
         <button class="action-btn danger" data-act="delete" data-id="${it.id}">Delete</button>
+        <button class="action-btn" data-act="edit" data-id="${it.id}">Edit</button>
         ${it.url ? `<a class="link" href="${it.url}" target="_blank">Open</a>` : ''}
       </div>
     `;
@@ -126,6 +129,8 @@ function renderList(items, sortKey) {
         await queueAdapter.enqueue({ op: 'delete', id });
         await localAdapter.remove(id);
       }
+    } else if (act === 'edit') {
+      openEditModal(it);
     }
     // Re-render after any action
     const updated = await getAllItems();
@@ -148,6 +153,13 @@ function applyFiltersAndRender(items) {
   const filters = readFiltersFromUI();
   const filtered = items.filter(it => matchesFilters(it, filters));
   renderList(filtered, filters.sort);
+  const statsbar = document.getElementById('statsbar');
+  if (statsbar) {
+    const total = filtered.length;
+    const done = filtered.filter(i => i.status === 'done').length;
+    const todo = total - done;
+    statsbar.textContent = `Filtered: ${total} • Done: ${done} • To Do: ${todo}`;
+  }
 }
 
 async function init() {
@@ -182,8 +194,19 @@ async function init() {
           if (resp && resp.success) resolve(); else reject(new Error((resp && resp.error) || 'Sync failed'));
         });
       });
-      const items = await getAllItems();
-      applyFiltersAndRender(items);
+      const items1 = await getAllItems();
+      applyFiltersAndRender(items1);
+      // Pull from backend to reflect remote deletions
+      try {
+        await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({ type: 'PULL_ALL' }, (resp) => {
+            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+            if (resp && resp.success) resolve(); else reject(new Error((resp && resp.error) || 'Pull failed'));
+          });
+        });
+        const items2 = await getAllItems();
+        applyFiltersAndRender(items2);
+      } catch {}
       if (window.showToast) showToast('Synced', 'success');
     } catch (e) {
       alert('Sync failed: ' + e.message);
@@ -232,6 +255,49 @@ async function init() {
     applyFiltersAndRender(items);
   }));
 
+  // Tag chip toggle: keep UI selection in sync with input
+  document.getElementById('tagChips').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.chip');
+    if (!btn) return;
+    const t = btn.textContent.trim();
+    const input = document.getElementById('tags');
+    const cur = new Set((input.value||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean));
+    const key = t.toLowerCase();
+    if (cur.has(key)) cur.delete(key); else cur.add(key);
+    input.value = Array.from(cur).join(', ');
+    renderTagChips(uniqueTags(await getAllItems()), () => {});
+    const items = await getAllItems();
+    applyFiltersAndRender(items);
+  });
+
+  // Stats button
+  const statsBtn = document.getElementById('statsBtn');
+  if (statsBtn) statsBtn.addEventListener('click', async () => {
+    try {
+      const resp = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: 'GET_STATS' }, (r) => {
+          if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+          resolve(r);
+        });
+      });
+      if (resp && resp.success) {
+        const modal = document.getElementById('editModal'); // reuse modal shell styles
+        const title = document.querySelector('#editModal header span');
+        const body = document.querySelector('#editModal .body');
+        const footer = document.querySelector('#editModal .footer');
+        title.textContent = 'Stats';
+        body.innerHTML = `<div><strong>Total:</strong> ${resp.stats.total}</div>
+          <div><strong>Active (local view may differ):</strong> ${resp.stats.active}</div>
+          <div><strong>Archived:</strong> ${resp.stats.archived}</div>
+          <div><strong>Archive Sheets:</strong> ${resp.stats.archiveSheets}</div>`;
+        footer.innerHTML = '<button id="editSave" class="btn btn-primary">Close</button>';
+        document.getElementById('editSave').onclick = () => { modal.style.display='none'; };
+        document.getElementById('editClose').onclick = () => { modal.style.display='none'; };
+        modal.style.display = 'flex';
+      }
+    } catch (e) { if (window.showToast) showToast('Stats failed: ' + e.message, 'error'); }
+  });
+
   // Reset filters
   const resetBtn = document.getElementById('resetFilters');
   if (resetBtn) resetBtn.addEventListener('click', async () => {
@@ -246,11 +312,57 @@ async function init() {
   const items = await getAllItems();
   renderTagChips(uniqueTags(items), tag => {
     const tagsInput = document.getElementById('tags');
-    const existing = tagsInput.value.trim();
-    tagsInput.value = existing ? `${existing}, ${tag}` : tag;
+    const cur = new Set((tagsInput.value||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean));
+    const key = tag.toLowerCase();
+    if (cur.has(key)) cur.delete(key); else cur.add(key);
+    tagsInput.value = Array.from(cur).join(', ');
     applyFiltersAndRender(items);
   });
   applyFiltersAndRender(items);
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Edit modal helpers
+function openEditModal(item){
+  const modal = document.getElementById('editModal');
+  const title = document.getElementById('editTitle');
+  const category = document.getElementById('editCategory');
+  const priority = document.getElementById('editPriority');
+  const tags = document.getElementById('editTags');
+  const notes = document.getElementById('editNotes');
+  const status = document.getElementById('editStatus');
+  const close = document.getElementById('editClose');
+  const save = document.getElementById('editSave');
+  document.querySelector('#editModal header span').textContent = 'Edit Item';
+  document.querySelector('#editModal .footer').innerHTML = '<button id="editSave" class="btn btn-primary">Save</button>';
+  title.value = item.title || '';
+  category.value = item.category || 'Other';
+  priority.value = item.priority || 'medium';
+  tags.value = (item.tags||[]).join(', ');
+  notes.value = item.notes || '';
+  status.value = item.status || 'todo';
+  const closeFn = ()=>{ modal.style.display='none'; };
+  close.onclick = closeFn;
+  modal.style.display = 'flex';
+  document.getElementById('editSave').onclick = async () => {
+    item.title = title.value.trim();
+    item.category = category.value;
+    item.priority = priority.value;
+    item.tags = (tags.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+    item.notes = notes.value.trim();
+    item.status = status.value;
+    item.updated_at = nowISO();
+    if (item.status === 'done' && !item.completed_at) item.completed_at = nowISO();
+    if (item.status !== 'done') item.completed_at = null;
+    await localAdapter.upsert(item);
+    await queueAdapter.enqueue(item);
+    const items = await getAllItems();
+    applyFiltersAndRender(items);
+    modal.style.display='none';
+    if (window.showToast) showToast('Item updated', 'success');
+  };
+}
+
+
+

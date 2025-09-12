@@ -34,6 +34,7 @@
       }
       .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
       .chip { background: #eef2ff; color: #4338ca; padding: 6px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; }
+      .chip.selected { background:#4338ca; color:#fff; box-shadow:0 1px 2px rgba(0,0,0,.1); }
       .list { display: grid; gap: 12px; }
       .item { background:#fff; border:1px solid #e5e7eb; border-radius: 12px; padding: 14px; }
       .item-title { font-weight: 700; font-size: 15px; display:flex; align-items:center; gap:8px; }
@@ -41,7 +42,8 @@
       .item-actions { margin-top:10px; display:flex; gap:8px; flex-wrap: wrap; }
       .pill { padding: 2px 8px; border-radius: 999px; font-size:11px; font-weight:700; }
       .todo { background:#fef3c7; color:#92400e; }
-      .done { background:#d1fae5; color:#065f46; }
+            .dup { background:#fde68a; color:#92400e; }
+      .notes { margin-top:8px; font-size:12px; color:#374151; background:#f9fafb; border:1px solid #eef2f7; padding:8px; border-radius:8px; white-space:pre-wrap; }
       .prio-low { background:#e5e7eb; color:#374151; }
       .prio-medium { background:#dbeafe; color:#1d4ed8; }
       .prio-high { background:#fee2e2; color:#991b1b; }
@@ -80,6 +82,13 @@
       body.compact .meta { font-size: 11px; }
       body.compact .chip { padding: 4px 8px; font-size: 11px; }
       body.compact .action-btn { padding: 6px 10px; border-radius: 8px; }
+      /* Modal */
+      .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:9999}
+      .modal{background:#fff;border-radius:14px;box-shadow:0 20px 40px rgba(0,0,0,.25);width:92%;max-width:520px}
+      .modal header{padding:12px 16px;border-bottom:1px solid #e5e7eb;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+      .modal .body{padding:14px 16px;font-size:13px;color:#374151}
+      .modal .footer{padding:12px 16px;border-top:1px solid #e5e7eb;text-align:right}
+      .modal input, .modal textarea, .modal select{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;margin-top:6px}
     </style>
   </head>
   <body>
@@ -89,6 +98,7 @@
         <button id="syncBtn" class="btn btn-primary"><span id="syncSpinner" class="spinner-dark spinner hidden" aria-hidden="true"></span><span id="syncText" style="margin-left:6px;">Sync Now</span></button>
         <button id="exportBtn" class="btn btn-secondary">Export</button>
         <button id="importBtn" class="btn btn-secondary">Import</button>
+        <button id="statsBtn" class="btn btn-secondary">Stats</button>
         <label style="display:flex;align-items:center;gap:6px;margin-left:8px;font-weight:600;">
           <input type="checkbox" id="compactToggle" /> Compact
         </label>
@@ -133,8 +143,36 @@
         <input id="tags" type="text" placeholder="Tags (comma-separated)" />
       </div>
       <div id="tagChips" class="chips"></div>
-      <div id="count" style="margin-bottom:10px; color:#6b7280; font-size:12px;"></div>
+      <div id="count" style="margin-bottom:6px; color:#6b7280; font-size:12px;"></div>
+      <div id="statsbar" style="margin-bottom:10px; color:#374151; font-weight:600; font-size:12px;"></div>
       <div id="list" class="list"></div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay" role="dialog" aria-modal="true">
+      <div class="modal">
+        <header>
+          <span>Edit Item</span>
+          <button id="editClose" class="btn btn-secondary btn-small">Close</button>
+        </header>
+        <div class="body">
+          <label>Title<input id="editTitle" type="text"></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+            <label>Category<select id="editCategory">
+              <option>Movie</option><option>TV</option><option>Trailer</option><option>Video</option><option>Blog</option><option>Podcast</option><option>Book</option><option>Course</option><option>Game</option><option>Other</option>
+            </select></label>
+            <label>Priority<select id="editPriority">
+              <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
+            </select></label>
+          </div>
+          <label style="margin-top:8px;">Tags (comma-separated)<input id="editTags" type="text"></label>
+          <label style="margin-top:8px;">Notes<textarea id="editNotes" rows="4"></textarea></label>
+          <label style="margin-top:8px;">Status<select id="editStatus"><option value="todo">To Do</option><option value="done">Done</option></select></label>
+        </div>
+        <div class="footer">
+          <button id="editSave" class="btn btn-primary">Save</button>
+        </div>
+      </div>
     </div>
 
     <script src="shared/utils.js"></script>
@@ -143,3 +181,4 @@
     <script src="dashboard.js"></script>
   </body>
   </html>
+

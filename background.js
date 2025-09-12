@@ -337,6 +337,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
   } else if (msg?.type === "UPSERT_ITEM") {
     // not used in this scaffold (popup writes to local + queue directly)
+  } else if (msg?.type === "PULL_ALL") {
+    (async () => {
+      try {
+        const opts = (await getLocal(OPTS_KEY)) || {};
+        const base = opts.apps_script_url;
+        if (!base) { sendResponse({success:false, error:"No Apps Script URL configured"}); return; }
+        let offset = 0; const limit = 1000; let all = [];
+        for (let i=0; i<10; i++) {
+          const resp = await fetch(`${base}?limit=${limit}&offset=${offset}`);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const txt = await resp.text();
+          let data; try { data = JSON.parse(txt); } catch { throw new Error('Invalid JSON from getItems'); }
+          const items = Array.isArray(data.items) ? data.items : [];
+          all = all.concat(items);
+          if (items.length < limit) break;
+          offset += limit;
+        }
+        await setLocal(LS_KEY, all);
+        sendResponse({success: true, count: all.length});
+      } catch(e) {
+        sendResponse({success:false, error:e.message});
+      }
+    })();
   }
   
   return true; // Keep message channel open for async response
