@@ -495,6 +495,20 @@ async function init() {
     document.getElementById('title').value = meta.title || '';
   }
 
+  // Compact mode toggle (persisted)
+  try {
+    const prefs = await (window.getUIPrefs ? getUIPrefs() : Promise.resolve({}));
+    if (prefs.popup_compact) document.body.classList.add('compact');
+    const ct = document.getElementById('compactToggle');
+    if (ct) {
+      ct.checked = !!prefs.popup_compact;
+      ct.addEventListener('change', async () => {
+        document.body.classList.toggle('compact', ct.checked);
+        if (window.setUIPrefs) await setUIPrefs({ popup_compact: ct.checked });
+      });
+    }
+  } catch {}
+
   const items = await localAdapter.getAll();
   
   // Build tag cache for autocomplete
@@ -607,8 +621,9 @@ async function init() {
       await queueAdapter.enqueue(item);
       
       // Success feedback
-      document.getElementById('saveBtnIcon').textContent = '✅';
+      document.getElementById('saveBtnIcon').textContent = '?';
       document.getElementById('saveBtnText').textContent = editingItemId ? 'Updated!' : 'Saved!';
+      try{ if (window.showToast) showToast(editingItemId ? 'Item updated' : 'Item saved', 'success'); }catch{}
       
       setTimeout(() => {
         document.getElementById('saveBtnIcon').textContent = originalIcon;
@@ -691,9 +706,9 @@ async function init() {
         const updatedItems = await localAdapter.getAll();
         buildTagCache(updatedItems);
         renderItems(updatedItems);
-        alert(`Successfully imported ${items.length} items!`);
+        try { if (window.showToast) showToast(`Imported ${items.length} items`, 'success'); } catch {}
       } catch (error) {
-        alert('Error importing file: ' + error.message);
+        try { if (window.showToast) showToast('Import failed: ' + error.message, 'error'); } catch {}
       }
     };
     input.click();
@@ -832,3 +847,5 @@ getPriorityIcon = function(priority) {
   const icons = { low: '??', medium: '??', high: '??' };
   return icons[priority] || '??';
 };
+
+

@@ -249,6 +249,15 @@
         transition: color 0.2s ease;
       }
       
+      /* Compact mode */
+      body.compact .header { padding: 14px; }
+      body.compact .content { padding: 14px; }
+      body.compact input[type="text"], body.compact input[type="datetime-local"], body.compact textarea, body.compact select { padding: 10px 12px; border-radius: 10px; font-size: 13px; }
+      body.compact .form-group { margin-bottom: 12px; }
+      body.compact textarea { min-height: 48px; }
+      body.compact .btn { padding: 10px 16px; }
+      body.compact .footer { padding: 12px 16px; gap: 8px; }
+      
       .link:hover {
         color: #7c3aed;
       }
@@ -488,6 +497,9 @@
           <span class="status-indicator" id="statusIndicator">⚪</span>
           <span class="status-text" id="statusText">Checking connection...</span>
         </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#475569;">
+          <input type="checkbox" id="compactToggle"/> Compact mode
+        </label>
         <div class="open-all-row">
           <button class="btn btn-secondary" id="openDashboard">Open All Items</button>
         </div>

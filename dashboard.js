@@ -155,6 +155,19 @@ async function init() {
   const syncBtn = document.getElementById('syncBtn');
   const syncSpinner = document.getElementById('syncSpinner');
   const syncText = document.getElementById('syncText');
+  // Compact toggle init
+  try {
+    const prefs = await (window.getUIPrefs ? getUIPrefs() : Promise.resolve({}));
+    if (prefs.dashboard_compact) document.body.classList.add('compact');
+    const ct = document.getElementById('compactToggle');
+    if (ct) {
+      ct.checked = !!prefs.dashboard_compact;
+      ct.addEventListener('change', async () => {
+        document.body.classList.toggle('compact', ct.checked);
+        if (window.setUIPrefs) await setUIPrefs({ dashboard_compact: ct.checked });
+      });
+    }
+  } catch {}
   document.getElementById('syncBtn').onclick = async () => {
     try {
       syncBtn.disabled = true;
@@ -171,7 +184,7 @@ async function init() {
       });
       const items = await getAllItems();
       applyFiltersAndRender(items);
-      // Non-blocking subtle feedback could be added here
+      if (window.showToast) showToast('Synced', 'success');
     } catch (e) {
       alert('Sync failed: ' + e.message);
     } finally {
@@ -203,11 +216,11 @@ async function init() {
           for (const it of data.items) await localAdapter.upsert(it);
           const items = await getAllItems();
           applyFiltersAndRender(items);
-          alert('Import complete');
+          if (window.showToast) showToast('Import complete', 'success');
         } else {
-          alert('Invalid file');
+          if (window.showToast) showToast('Invalid file', 'error');
         }
-      } catch(e){ alert('Import failed: ' + e.message); }
+      } catch(e){ if (window.showToast) showToast('Import failed: ' + e.message, 'error'); }
     };
     input.click();
   };

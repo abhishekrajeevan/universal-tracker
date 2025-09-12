@@ -112,6 +112,20 @@ function bestTitle(host, ldCandidates) {
   const h1 = document.querySelector("h1")?.textContent?.trim();
   const doc = document.title?.trim();
 
+  // Special handling for Google Search pages where <h1> is often "Accessibility links"
+  const isGoogleSearch = /(^|\.)google\./i.test(host) && location.pathname === '/search';
+  if (isGoogleSearch) {
+    // Try knowledge panel title first (when present), then search query, then document title
+    const kp = document.querySelector('[data-attrid="title"] span')?.textContent?.trim()
+            || document.querySelector('#rhs .kp-header')?.textContent?.trim();
+    const qParam = new URL(location.href).searchParams.get('q')
+               || document.querySelector('input[name="q"]')?.value;
+    const candidate = kp || qParam || og || tw || doc;
+    const cleaned = cleanTitle(candidate || '');
+    if (!/^accessibility\s+links$/i.test(cleaned)) return cleaned;
+    // fall through to general logic if somehow still bad
+  }
+
   // YouTube-specific handling
   if (/youtube\.com/i.test(host)) {
     const ytH1 = document.querySelector("#title h1")?.textContent?.trim();
@@ -124,7 +138,11 @@ function bestTitle(host, ldCandidates) {
     return cleanTitle(ldName || og || tw || vimeoTitle || h1 || doc);
   }
   
-  return cleanTitle(ldName || og || tw || h1 || doc);
+  // Avoid the common a11y header text if it sneaks in
+  const chosen = ldName || og || tw || h1 || doc;
+  const cleaned = cleanTitle(chosen || '');
+  if (/^accessibility\s+links$/i.test(cleaned)) return cleanTitle(doc || og || tw || '');
+  return cleaned;
 }
 
 /* ------------------ Main extractor ------------------ */

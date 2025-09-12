@@ -69,6 +69,17 @@
       @media (max-width: 900px) {
         .filters { grid-template-columns: 1fr 1fr; }
       }
+
+      /* Compact mode */
+      body.compact .container { padding: 14px; }
+      body.compact .filters { gap: 8px; }
+      body.compact .filters input, 
+      body.compact .filters select { padding: 10px 12px; border-radius: 8px; }
+      body.compact .item { padding: 10px; border-radius: 10px; }
+      body.compact .item-title { font-size: 14px; }
+      body.compact .meta { font-size: 11px; }
+      body.compact .chip { padding: 4px 8px; font-size: 11px; }
+      body.compact .action-btn { padding: 6px 10px; border-radius: 8px; }
     </style>
   </head>
   <body>
@@ -78,6 +89,9 @@
         <button id="syncBtn" class="btn btn-primary"><span id="syncSpinner" class="spinner-dark spinner hidden" aria-hidden="true"></span><span id="syncText" style="margin-left:6px;">Sync Now</span></button>
         <button id="exportBtn" class="btn btn-secondary">Export</button>
         <button id="importBtn" class="btn btn-secondary">Import</button>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:8px;font-weight:600;">
+          <input type="checkbox" id="compactToggle" /> Compact
+        </label>
       </div>
     </div>
     <div class="container">
