@@ -1,190 +1,112 @@
-# Universal Tracker - Chrome Extension
+# Universal Tracker — Chrome Extension
 
-A powerful Chrome extension for tracking content across the web with intelligent categorization, local storage, and seamless Google Sheets synchronization.
+> Track what you want to watch, read, or revisit across the web. Save pages with one click, organize with categories/tags/priority, and optionally sync to your own Google Sheet.
 
- 
-## 🚀 Features
+## Features
 
-### Core Functionality
- 
+### Core
 
-- **One-click content saving** - Save any webpage with intelligent title extraction
- 
-- **Smart categorization** - Automatically detects content type (Movie, TV, Video, Blog, Podcast, Book, Course, Game, etc.)
-- **Status tracking** - Mark items as "To Do" or "Done" with visual indicators
- 
-- **Rich metadata** - Store tags, notes, source domain, and timestamps
-- **Local-first storage** - All data stored locally in Chrome with optional cloud sync
- 
+- One‑click save from any page with clean title detection
+- Smart categorization: Movie, TV, Video, Blog, Podcast, Book, Course, Game, Other
+- Status tracking: To Do / Done with timestamps (added/updated/completed)
+- Rich metadata: notes, tags, source domain, optional reminder time
+- Local‑first storage with optional Google Sheets sync
 
-### Advanced Features
- 
-- **Intelligent title extraction** - Uses Open Graph, Twitter meta, JSON-LD, and H1 tags for clean titles
-- **URL cleanup** - Removes tracking parameters while preserving important content identifiers
- 
-- **SPA-aware** - Works with single-page applications and dynamic content
-- **Batch processing** - Efficient syncing with up to 100 items per batch
- 
-- **Automatic archiving** - Keeps active sheet fast by archiving old items
-- **Export/Import** - Full data portability with JSON export/import
- 
-- **Connection testing** - Built-in diagnostics for Google Sheets setup
+### Advanced
 
- 
-### Google Sheets Integration
-- **Real-time sync** - Automatic background synchronization every 10 minutes (configurable)
- 
-- **Enhanced storage** - Handles large datasets with intelligent archiving
-- **Multiple sheets** - Active items + monthly archive sheets
- 
-- **Performance optimized** - Batch processing and chunked reading for large datasets
-- **Statistics tracking** - Monitor active vs archived items
- 
+- Robust title extraction (Open Graph, Twitter, JSON‑LD, H1) with URL cleanup
+- SPA aware (works on dynamically changing pages, uses history listeners)
+- Batch sync (up to 100 items per batch) with outbox queue
+- Import/Export JSON for full portability
+- Archiving and stats via Apps Script backend
 
-## 📦 Installation
- 
+### UI/UX
 
-### Developer Mode Installation
- 
-1. Download and extract this repository
-2. Open Chrome and navigate to `chrome://extensions`
- 
-3. Enable **Developer mode** (toggle in top right)
-4. Click **Load unpacked** and select the extracted folder
- 
-5. Pin the extension to your toolbar for easy access
+- Compact mode toggle for both Popup and Dashboard (persisted)
+- Priority filter and sorting (priority/created/updated)
+- Reset button on Dashboard to clear all filters/search/tags quickly
+- In‑button sync progress and non‑blocking toasts for success/error
+- Stats modal in Popup (replaces alert)
+- Fix for Google Search pages that previously produced the title “Accessibility links”
 
- 
-## ⚙️ Setup
+## Install (Developer Mode)
 
- 
-### Basic Usage (Local Storage Only)
+1. Clone or download this repository.
+2. Open Chrome and go to `chrome://extensions`.
+3. Enable Developer mode.
+4. Click “Load unpacked” and select the project folder.
+5. Pin the extension for quick access.
 
- 
-The extension works immediately after installation with local storage. No additional setup required.
+## Setup (Optional Google Sheets Sync)
 
- 
-### Google Sheets Integration (Recommended)
+The extension works locally out of the box. To sync with Google Sheets:
 
-For cloud sync and backup, set up Google Sheets integration:
- 
+1. Create a Google Sheet (e.g., “Universal Tracker”).
+2. Open Extensions → Apps Script and replace the default code with `apps_script/Code.gs`.
+3. Deploy as Web App:
+   - Type: Web app
+   - Execute as: Me
+   - Who has access: Anyone (or your preferred access)
+   - Deploy and copy the Web App URL.
+4. Open the extension’s Options page and paste the URL, set auto‑sync interval, and save.
+5. Use “Test Connection” in Options to verify connectivity.
 
-1. **Create Google Spreadsheet**
- 
-   - Go to [Google Sheets](https://sheets.google.com)
-   - Create a new blank spreadsheet
- 
-   - Name it "Universal Tracker"
+See `SETUP_GUIDE.md` and `GOOGLE_SHEETS_SETUP.md` for detailed steps and troubleshooting.
 
- 
-2. **Set Up Apps Script**
-   - In your spreadsheet: **Extensions** → **Apps Script**
- 
-   - Delete default code and paste contents of `apps_script/Code.gs`
-   - Save the project (Ctrl+S)
- 
+## Usage
 
-3. **Deploy as Web App**
- 
-   - Click **Deploy** → **New deployment**
-   - Choose **Web app** as type
- 
-   - Set **Execute as**: Me
-   - Set **Who has access**: Anyone
- 
-   - Click **Deploy** and **copy the Web App URL**
+### Save items from the Popup
 
- 
-4. **Configure Extension**
-   - Open extension popup → Click gear icon (⚙️)
- 
-   - Paste your Web App URL
-   - Set sync interval (default: 10 minutes)
- 
-   - Click **Save Settings**
+- The extension auto‑detects title/category; you can adjust category, priority, tags, notes, and optionally set a reminder.
+- Save creates a To Do item by default; you can mark items Done later from the list.
+- The Popup toolbar offers Sync, Export, Import, Archive, and View Stats.
 
- 
-5. **Test Connection**
-   - Click **🔗 Test Connection** to verify setup
- 
-   - You should see success message with item counts
+### Manage items in the Dashboard
 
- 
-> 📖 **Detailed Setup Guide**: See `SETUP_GUIDE.md` for comprehensive instructions with troubleshooting
+- Open `dashboard.html` from the toolbar: filter by search/status/category/priority/tags, and sort by priority/created/updated.
+- Use the Reset button to clear all filters instantly.
+- Toggle Compact mode for a denser layout.
 
- 
-## 🎯 How to Use
+## Recent Additions
 
- 
-### Saving Content
-1. Navigate to any webpage you want to track
- 
-2. Click the Universal Tracker extension icon
-3. Review the auto-detected title and category
- 
-4. Add tags, notes, or modify details as needed
-5. Click **Save as To Do** or **Mark as Done**
+- Compact mode toggle (Popup + Dashboard), persisted in `chrome.storage.local`.
+- Priority filter and sorting on Dashboard.
+- Reset button to clear all filters on Dashboard.
+- Non‑blocking toast notifications for Sync/Import/Export/Stats.
+- Stats displayed in a modal in Popup.
+- Improved Sync feedback with spinner and button state.
+- Title fix for Google Search result pages (“Accessibility links” is ignored).
 
-### Managing Items
-- **View all items** in the popup with status indicators
-- **Toggle status** between To Do/Done with one click
-- **Delete items** you no longer need
-- **Open original URLs** directly from the popup
-- **Export data** as JSON for backup
-- **Import data** from previous exports
+## Permissions
 
-### Google Sheets Features
-- **Manual sync** - Click 🔄 Sync button anytime
-- **Auto-sync** - Runs automatically every 10 minutes (configurable)
-- **Archive management** - Click 📦 Archive to move old items
-- **Statistics** - View 📊 Stats for storage overview
+From `manifest.json`:
 
-## 📊 Data Structure
+- `storage`, `tabs`, `scripting`, `alarms`, `downloads`, `notifications`
+- `host_permissions`: `<all_urls>` (required to read page metadata for save)
 
-Each tracked item contains:
-```json
-{
-  "id": "unique-uuid",
-  "title": "Clean extracted title",
-  "url": "Original URL (blank for Movies/TV)",
-  "status": "todo | done",
-  "category": "Movie|TV|Trailer|Video|Blog|Podcast|Book|Course|Game|Other",
-  "tags": ["array", "of", "tags"],
-  "notes": "User notes",
-  "source": "website hostname",
-  "added_at": "ISO timestamp",
-  "updated_at": "ISO timestamp",
-  "completed_at": "ISO timestamp or null"
-}
-```
+These are used for local storage, metadata extraction, reminders (alarms/notifications), exporting, and optional background sync.
 
-## 🏗️ Architecture
+## Project Structure
 
-### Extension Components
-- **`manifest.json`** - Chrome extension configuration
-- **`background.js`** - Service worker for sync and background tasks
-- **`content.js`** - Page metadata extraction and SPA detection
-- **`popup.js`** - Main UI and user interactions
-- **`options.js`** - Settings and Google Sheets configuration
+- `content.js` — Extract page metadata (title/url/category), SPA‑aware
+- `popup.html` / `popup.js` — Capture UI and recent items list
+- `dashboard.html` / `dashboard.js` — All Items page with filters/sort
+- `options.html` / `options.js` — Configuration for Apps Script URL and autosync
+- `background.js` — Outbox queue, sync/alarms/notifications, stats
+- `shared/` — `schema.js`, `utils.js` (toasts, prefs, ids, title cleaning), `adapters.js`
+- `apps_script/Code.gs` — Google Apps Script web app (bulk upsert/delete, archive, stats)
 
-### Shared Modules
-- **`shared/adapters.js`** - Local storage and queue adapters
-- **`shared/schema.js`** - Data model and item creation
-- **`shared/utils.js`** - Common utilities (UUID, title cleaning, etc.)
+## Configuration
 
-### Google Apps Script
-- **`apps_script/Code.gs`** - Server-side API for Google Sheets integration
-- Handles bulk operations, archiving, and statistics
-- Optimized for large datasets with batch processing
+### Extension
 
-## 🔧 Configuration
+- Auto‑sync interval (minutes)
+- Apps Script Web App URL
 
-### Extension Settings
-- **Auto-sync interval** - How often to sync with Google Sheets (5-60 minutes)
-- **Apps Script URL** - Your Google Apps Script web app endpoint
+### Apps Script
 
-### Google Sheets Settings
-The Apps Script can be configured by modifying constants in `Code.gs`:
+Edit `Code.gs` constants as needed:
+
 ```javascript
 const CONFIG = {
   ACTIVE_SHEET: 'Items_Active',
@@ -195,98 +117,35 @@ const CONFIG = {
 };
 ```
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
-### Common Issues
+- Connection test fails: ensure your Web App is deployed as “Anyone” and the URL ends with `/exec`.
+- No data appears: click Sync, then check Chrome DevTools Console for errors.
+- Timeouts/large data: reduce auto‑sync frequency or use Archive to keep the active sheet lean.
 
-**Connection Test Fails**
-- Verify Apps Script URL is correct (ends with `/exec`)
-- Ensure Apps Script is deployed with "Anyone" access
-- Check internet connection
+## Privacy
 
-**No Data in Google Sheets**
-- Click **🔄 Sync** in extension popup
-- Check browser console (F12) for error messages
-- Verify Apps Script deployment settings
+- Local‑first by default; Google Sheets sync is optional and user‑controlled.
+- No tracking or analytics; your data lives in your browser and your spreadsheet.
 
-**Performance Issues**
-- Use **📦 Archive** button to move old items
-- Reduce auto-sync frequency if you have many items
-- Check statistics to monitor active vs archived counts
+## Development
 
-### Getting Help
-1. Check browser console (F12 → Console) for error messages
-2. Use the **🔗 Test Connection** button in options
-3. Review the detailed setup guides in `SETUP_GUIDE.md` and `GOOGLE_SHEETS_SETUP.md`
-4. Check Apps Script execution log in Google Apps Script editor
+- Manifest V3 extension; no build step. Edit files and reload the unpacked extension.
+- Keep changes minimal and focused; avoid breaking existing behaviors.
 
-## 🔒 Privacy & Security
+## License
 
-- **Local-first** - All data stored locally in Chrome
-- **Optional sync** - Google Sheets integration is completely optional
-- **No tracking** - Extension doesn't collect or send personal data
-- **User-owned** - You control your Google Sheets and data
-- **Secure** - Uses HTTPS for all Google Sheets communication
+Open source. See the repository for license details.
 
-## 🚀 Advanced Features
+## Contributing
 
-### Smart Content Detection
-- **JSON-LD parsing** - Extracts structured data from websites
-- **Category inference** - Automatically detects content type
-- **Title cleaning** - Removes site names and separators for clean titles
-- **URL optimization** - Preserves important parameters while removing trackers
+Pull requests are welcome. Please:
 
-### Performance Optimizations
-- **Batch processing** - Handles up to 100 items per sync
-- **Chunked reading** - Processes large sheets in 1000-row chunks
-- **Intelligent archiving** - Automatically moves old items to archive sheets
-- **Memory efficient** - Optimized for large datasets
-
-### Data Management
-- **Automatic archiving** - Items older than 6 months moved to archive sheets
-- **Multiple archive sheets** - Organized by month (e.g., `Items_Archive_2024_01`)
-- **Statistics tracking** - Monitor active vs archived item counts
-- **Export/Import** - Full data portability with JSON format
-
-## 📈 Scaling
-
-### For Heavy Users (1000+ items)
-- Set auto-sync to 15-30 minutes
-- Use manual archiving monthly
-- Monitor statistics regularly
-- Consider reducing batch size if experiencing timeouts
-
-### For Light Users (< 100 items)
-- Default settings work perfectly
-- Auto-sync every 10 minutes is sufficient
-- Archiving happens automatically
-- No performance concerns
-
-## 🔄 Migration & Updates
-
-### From Previous Versions
-- Existing data automatically migrates
-- Old "Items" sheet renamed to "Items_Active"
-- Archive sheets created as needed
-- No data loss during migration
-
-### Data Export/Import
-- Export: Click **📤 Export** in popup
-- Import: Click **📥 Import** and select JSON file
-- Full data portability between installations
-
-## 📄 License
-
-This project is open source. See the repository for license details.
-
-## 🤝 Contributing
-
-Contributions welcome! Please read the codebase and follow existing patterns for:
-- Error handling and user feedback
-- Consistent UI/UX patterns
-- Performance optimizations
-- Documentation updates
+- Keep changes minimal and focused.
+- Preserve existing UX patterns and reliability.
+- Include documentation updates for user‑visible changes.
 
 ---
 
-**Need help?** The extension includes comprehensive built-in help, connection testing, and detailed setup guides to get you started quickly.
+Need help? See the setup guides or open an issue.
+
