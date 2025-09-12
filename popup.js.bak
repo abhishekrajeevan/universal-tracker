@@ -669,8 +669,7 @@ async function init() {
   };
 
   // Export functionality
-  document.getElementById('exportBtn').onclick = async (e) => {
-    e.preventDefault();
+  document.getElementById('exportBtn').onclick = async () => {
     const items = await localAdapter.getAll();
     const blob = new Blob([JSON.stringify({ items }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -702,8 +701,7 @@ async function init() {
   }
 
   // Import functionality
-  document.getElementById('importBtn').onclick = async (e) => {
-    e.preventDefault();
+  document.getElementById('importBtn').onclick = async () => {
     const input = document.createElement('input');
     input.type = 'file'; 
     input.accept = 'application/json';
@@ -736,12 +734,11 @@ async function init() {
   };
 
   // Sync functionality
-  document.getElementById('syncBtn').onclick = async (e) => {
-    e.preventDefault();
+  document.getElementById('syncBtn').onclick = async () => {
     const syncBtn = document.getElementById('syncBtn');
     const originalText = syncBtn.innerHTML;
-    syncBtn.innerHTML = 'Syncing...';
-
+    
+    syncBtn.innerHTML = '⏳ Syncing...';
     syncBtn.style.pointerEvents = 'none';
     
     try {
@@ -750,7 +747,7 @@ async function init() {
       console.log('Sync response:', response);
       
       if (response && response.success) {
-        syncBtn.innerHTML = 'Synced!' ;
+        syncBtn.innerHTML = '? Synced!';
         try { if (window.showToast) showToast('Synced', 'success'); } catch {}
         await checkConnectionStatus();
         setTimeout(() => {
@@ -761,8 +758,8 @@ async function init() {
         throw new Error((response && response.error) || 'Sync failed');
       }
     } catch (error) {
-      syncBtn.innerHTML = 'Error';
-
+      console.log('Sync error:', error);
+      syncBtn.innerHTML = '❌ Error';
       
       if (error.message.includes('timeout')) {
         console.error('Sync timeout - this may indicate the sync is still running in the background');
@@ -776,19 +773,18 @@ async function init() {
   };
 
   // Archive functionality
-  document.getElementById('archiveBtn').onclick = async (e) => {
-    e.preventDefault();
+  document.getElementById('archiveBtn').onclick = async () => {
     const archiveBtn = document.getElementById('archiveBtn');
     const originalText = archiveBtn.innerHTML;
     
-    archiveBtn.innerHTML = 'Archiving...';
+    archiveBtn.innerHTML = '⏳ Archiving...';
     archiveBtn.style.pointerEvents = 'none';
     
     try {
       const response = await sendMessageWithTimeout({ type: 'TRIGGER_ARCHIVE' }, 20000);
       
       if (response && response.success) {
-        archiveBtn.innerHTML = 'Archived!';
+        archiveBtn.innerHTML = '✅ Archived!';
         setTimeout(() => {
           archiveBtn.innerHTML = originalText;
           archiveBtn.style.pointerEvents = 'auto';
@@ -797,7 +793,7 @@ async function init() {
         throw new Error((response && response.error) || 'Archive failed');
       }
     } catch (error) {
-      archiveBtn.innerHTML = 'Error';
+      archiveBtn.innerHTML = '❌ Error';
       setTimeout(() => {
         archiveBtn.innerHTML = originalText;
         archiveBtn.style.pointerEvents = 'auto';
@@ -806,12 +802,11 @@ async function init() {
   };
 
   // Stats functionality
-  document.getElementById('statsBtn').onclick = async (e) => {
-    e.preventDefault();
+  document.getElementById('statsBtn').onclick = async () => {
     const statsBtn = document.getElementById('statsBtn');
     const originalText = statsBtn.innerHTML;
     
-    statsBtn.innerHTML = 'Loading...';
+    statsBtn.innerHTML = '⏳ Loading...';
     statsBtn.style.pointerEvents = 'none';
     
     try {
@@ -878,8 +873,6 @@ getPriorityIcon = function(priority) {
   const icons = { low: '??', medium: '??', high: '??' };
   return icons[priority] || '??';
 };
-
-
 
 
 
