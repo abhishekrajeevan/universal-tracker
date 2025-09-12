@@ -11,6 +11,7 @@ function hostFor(item) {
 function matchesFilters(item, filters) {
   if (filters.status && item.status !== filters.status) return false;
   if (filters.category && item.category !== filters.category) return false;
+  if (filters.priority && (item.priority || '').toLowerCase() !== filters.priority) return false;
 
   if (filters.search) {
     const q = filters.search.toLowerCase();
@@ -47,7 +48,16 @@ function renderTagChips(allTags, onPick) {
   });
 }
 
-function renderList(items) {
+function priorityWeight(p){
+  switch((p||'').toLowerCase()){
+    case 'high': return 3;
+    case 'medium': return 2;
+    case 'low': return 1;
+    default: return 0;
+  }
+}
+
+function renderList(items, sortKey) {
   const list = document.getElementById('list');
   const count = document.getElementById('count');
   list.innerHTML = '';
@@ -58,15 +68,29 @@ function renderList(items) {
     return;
   }
 
-  const sorted = items.slice().sort((a,b) => (b.updated_at||'').localeCompare(a.updated_at||''));
+  const sorted = items.slice();
+  const key = sortKey || 'updated_desc';
+  const cmpDate = (a,b,field,dir) => {
+    const av = a[field] || '';
+    const bv = b[field] || '';
+    return dir==='asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+  };
+  if (key.startsWith('updated_')) sorted.sort((a,b)=>cmpDate(a,b,'updated_at', key.endsWith('asc')?'asc':'desc'));
+  else if (key.startsWith('created_')) sorted.sort((a,b)=>cmpDate(a,b,'added_at', key.endsWith('asc')?'asc':'desc'));
+  else if (key.startsWith('priority_')) sorted.sort((a,b)=>{
+    const diff = priorityWeight(a.priority) - priorityWeight(b.priority);
+    return key.endsWith('asc') ? diff : -diff;
+  });
   for (const it of sorted) {
     const div = document.createElement('div');
     div.className = 'item';
     const host = hostFor(it);
+    const prio = (it.priority||'').toLowerCase();
     div.innerHTML = `
       <div class="item-title">
         ${it.title || '(untitled)'}
         <span class="pill ${it.status==='done'?'done':'todo'}">${it.status==='done'?'Done':'To Do'}</span>
+        ${prio ? `<span class="pill ${prio==='high'?'prio-high':prio==='medium'?'prio-medium':'prio-low'}">${(it.priority||'').charAt(0).toUpperCase()+ (it.priority||'').slice(1)}</span>` : ''}
       </div>
       <div class="meta">
         <span>${it.category || 'Other'}</span>
@@ -75,8 +99,8 @@ function renderList(items) {
         ${(it.reminder_time) ? `<span>• Reminder: ${new Date(it.reminder_time).toLocaleString()}</span>` : ''}
       </div>
       <div class="item-actions">
-        <button data-act="toggle" data-id="${it.id}">${it.status==='done'?'Mark To Do':'Mark Done'}</button>
-        <button data-act="delete" data-id="${it.id}">Delete</button>
+        <button class="action-btn ${it.status==='done'?'':'solid'}" data-act="toggle" data-id="${it.id}">${it.status==='done'?'Mark To Do':'Mark Done'}</button>
+        <button class="action-btn danger" data-act="delete" data-id="${it.id}">Delete</button>
         ${it.url ? `<a class="link" href="${it.url}" target="_blank">Open</a>` : ''}
       </div>
     `;
@@ -113,21 +137,32 @@ function readFiltersFromUI() {
   const search = document.getElementById('search').value.trim();
   const status = document.getElementById('status').value;
   const category = document.getElementById('category').value;
+  const priority = document.getElementById('priority')?.value || '';
+  const sort = document.getElementById('sort')?.value || 'updated_desc';
   const tagsRaw = document.getElementById('tags').value.trim();
   const tags = tagsRaw ? tagsRaw.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean) : [];
-  return { search, status, category, tags };
+  return { search, status, category, priority, sort, tags };
 }
 
 function applyFiltersAndRender(items) {
   const filters = readFiltersFromUI();
   const filtered = items.filter(it => matchesFilters(it, filters));
-  renderList(filtered);
+  renderList(filtered, filters.sort);
 }
 
 async function init() {
   // Buttons
+  const syncBtn = document.getElementById('syncBtn');
+  const syncSpinner = document.getElementById('syncSpinner');
+  const syncText = document.getElementById('syncText');
   document.getElementById('syncBtn').onclick = async () => {
     try {
+      syncBtn.disabled = true;
+      // Show in-button spinner and change text
+      if (syncSpinner) {
+        syncSpinner.classList.remove('hidden');
+      }
+      if (syncText) syncText.textContent = 'Syncing…';
       await new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({ type: 'SYNC_NOW' }, (resp) => {
           if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
@@ -136,9 +171,13 @@ async function init() {
       });
       const items = await getAllItems();
       applyFiltersAndRender(items);
-      alert('Synced successfully');
+      // Non-blocking subtle feedback could be added here
     } catch (e) {
       alert('Sync failed: ' + e.message);
+    } finally {
+      syncBtn.disabled = false;
+      if (syncSpinner) syncSpinner.classList.add('hidden');
+      if (syncText) syncText.textContent = 'Sync Now';
     }
   };
 
@@ -174,7 +213,7 @@ async function init() {
   };
 
   // Filters events
-  ['search','status','category','tags'].forEach(id => document.getElementById(id).addEventListener('input', async () => {
+  ['search','status','category','priority','sort','tags'].forEach(id => document.getElementById(id).addEventListener('input', async () => {
     const items = await getAllItems();
     applyFiltersAndRender(items);
   }));
@@ -191,4 +230,3 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
-

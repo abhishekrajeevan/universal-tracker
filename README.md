@@ -2,83 +2,126 @@
 
 A powerful Chrome extension for tracking content across the web with intelligent categorization, local storage, and seamless Google Sheets synchronization.
 
+ 
 ## 🚀 Features
 
 ### Core Functionality
+ 
+
 - **One-click content saving** - Save any webpage with intelligent title extraction
+ 
 - **Smart categorization** - Automatically detects content type (Movie, TV, Video, Blog, Podcast, Book, Course, Game, etc.)
 - **Status tracking** - Mark items as "To Do" or "Done" with visual indicators
+ 
 - **Rich metadata** - Store tags, notes, source domain, and timestamps
 - **Local-first storage** - All data stored locally in Chrome with optional cloud sync
+ 
 
 ### Advanced Features
+ 
 - **Intelligent title extraction** - Uses Open Graph, Twitter meta, JSON-LD, and H1 tags for clean titles
 - **URL cleanup** - Removes tracking parameters while preserving important content identifiers
+ 
 - **SPA-aware** - Works with single-page applications and dynamic content
 - **Batch processing** - Efficient syncing with up to 100 items per batch
+ 
 - **Automatic archiving** - Keeps active sheet fast by archiving old items
 - **Export/Import** - Full data portability with JSON export/import
+ 
 - **Connection testing** - Built-in diagnostics for Google Sheets setup
 
+ 
 ### Google Sheets Integration
 - **Real-time sync** - Automatic background synchronization every 10 minutes (configurable)
+ 
 - **Enhanced storage** - Handles large datasets with intelligent archiving
 - **Multiple sheets** - Active items + monthly archive sheets
+ 
 - **Performance optimized** - Batch processing and chunked reading for large datasets
 - **Statistics tracking** - Monitor active vs archived items
+ 
 
 ## 📦 Installation
+ 
 
 ### Developer Mode Installation
+ 
 1. Download and extract this repository
 2. Open Chrome and navigate to `chrome://extensions`
+ 
 3. Enable **Developer mode** (toggle in top right)
 4. Click **Load unpacked** and select the extracted folder
+ 
 5. Pin the extension to your toolbar for easy access
 
+ 
 ## ⚙️ Setup
 
+ 
 ### Basic Usage (Local Storage Only)
+
+ 
 The extension works immediately after installation with local storage. No additional setup required.
 
+ 
 ### Google Sheets Integration (Recommended)
+
 For cloud sync and backup, set up Google Sheets integration:
+ 
 
 1. **Create Google Spreadsheet**
+ 
    - Go to [Google Sheets](https://sheets.google.com)
    - Create a new blank spreadsheet
+ 
    - Name it "Universal Tracker"
 
+ 
 2. **Set Up Apps Script**
    - In your spreadsheet: **Extensions** → **Apps Script**
+ 
    - Delete default code and paste contents of `apps_script/Code.gs`
    - Save the project (Ctrl+S)
+ 
 
 3. **Deploy as Web App**
+ 
    - Click **Deploy** → **New deployment**
    - Choose **Web app** as type
+ 
    - Set **Execute as**: Me
    - Set **Who has access**: Anyone
+ 
    - Click **Deploy** and **copy the Web App URL**
 
+ 
 4. **Configure Extension**
    - Open extension popup → Click gear icon (⚙️)
+ 
    - Paste your Web App URL
    - Set sync interval (default: 10 minutes)
+ 
    - Click **Save Settings**
 
+ 
 5. **Test Connection**
    - Click **🔗 Test Connection** to verify setup
+ 
    - You should see success message with item counts
 
+ 
 > 📖 **Detailed Setup Guide**: See `SETUP_GUIDE.md` for comprehensive instructions with troubleshooting
 
+ 
 ## 🎯 How to Use
 
+ 
 ### Saving Content
 1. Navigate to any webpage you want to track
+ 
 2. Click the Universal Tracker extension icon
 3. Review the auto-detected title and category
+ 
 4. Add tags, notes, or modify details as needed
 5. Click **Save as To Do** or **Mark as Done**
 
