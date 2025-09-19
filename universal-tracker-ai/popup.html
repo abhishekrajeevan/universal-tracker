@@ -58,10 +58,7 @@
       
       .page-meta { display: none; }
       
-      .page-meta::before {
-        content: "ðŸŒ";
-        font-size: 16px;
-      }
+      
       
       .form-group {
         margin-bottom: 16px;
@@ -428,10 +425,7 @@
   </head>
   <body>
     <div class="container">
-      <div class="header">
-        <h1>
-          <div class="header-icon">ðŸ“š</div>
-          Universal Tracker AI
+      <div class="header">`r`n        <h1>`r`n          <div class="header-icon" aria-hidden="true">AI</div>`r`n          Universal Tracker AI
         </h1>
       </div>
       
@@ -447,26 +441,11 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Category</label>
-            <select id="category">
-              <option value="Movie">ðŸŽ¬ Movie</option>
-              <option value="TV">ðŸ“º TV</option>
-              <option value="Trailer">ðŸŽ­ Trailer</option>
-              <option value="Video">ðŸŽ¥ Video</option>
-              <option value="Blog">ðŸ“ Blog</option>
-              <option value="Podcast">ðŸŽ§ Podcast</option>
-              <option value="Book">ðŸ“– Book</option>
-              <option value="Course">ðŸŽ“ Course</option>
-              <option value="Game">ðŸŽ® Game</option>
-              <option value="Other">ðŸ“„ Other</option>
-            </select>
+            <select id="category">`r`n              <option value="Movie">Movie</option>`r`n              <option value="TV">TV</option>`r`n              <option value="Trailer">Trailer</option>`r`n              <option value="Video">Video</option>`r`n              <option value="Blog">Blog</option>`r`n              <option value="Podcast">Podcast</option>`r`n              <option value="Book">Book</option>`r`n              <option value="Course">Course</option>`r`n              <option value="Game">Game</option>`r`n              <option value="Other">Other</option>`r`n            </select>
           </div>
           <div class="form-group">
             <label>Priority</label>
-            <select id="priority">
-              <option value="low">ðŸ”µ Low</option>
-              <option value="medium" selected>ðŸŸ¡ Medium</option>
-              <option value="high">ðŸ”´ High</option>
-            </select>
+            <select id="priority">`r`n              <option value="low">Low</option>`r`n              <option value="medium" selected>Medium</option>`r`n              <option value="high">High</option>`r`n            </select>
           </div>
         </div>
 
@@ -481,8 +460,7 @@
         <div class="reminder-section">
           <label>
             <input type="checkbox" id="reminderEnabled" class="reminder-checkbox">
-            â° Set Reminder
-          </label>
+            â° <label><input type="checkbox" id="reminderEnabled" class="reminder-checkbox"> Set Reminder</label>
           <div id="reminderDateTime" style="display: none;">
             <input type="datetime-local" id="reminderTime" />
           </div>
@@ -494,14 +472,14 @@
         </div>
 
         <button id="saveBtn" class="btn btn-primary">
-          <span id="saveBtnIcon">ðŸ’¾</span>
+          <span id="saveBtnIcon"></span>
           <span id="saveBtnText">Save Item</span>
         </button>
       </div>
 
       <div class="footer">
         <div class="connection-status" id="connectionStatus">
-          <span class="status-indicator" id="statusIndicator">âšª</span>
+          <span class="status-indicator" id="statusIndicator">●</span>
           <span class="status-text" id="statusText">Checking connection...</span>
         </div>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#475569;">
@@ -542,5 +520,11 @@
     <script src="popup.js"></script>
   </body>
 </html>
+
+
+
+
+
+
 
 

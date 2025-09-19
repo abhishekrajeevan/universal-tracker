@@ -400,12 +400,14 @@ chrome.runtime.onInstalled.addListener(async () => {
   console.log('Extension installed/updated');
   await setupAutoSync();
   await rescheduleReminders(); // Reschedule existing reminders
+  try { await chrome.action.setBadgeText({ text: 'AI' }); await chrome.action.setBadgeBackgroundColor({ color: '#7c3aed' }); } catch {}
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   console.log('Extension started');
   await setupAutoSync();
   await rescheduleReminders(); // Reschedule existing reminders
+  try { await chrome.action.setBadgeText({ text: 'AI' }); await chrome.action.setBadgeBackgroundColor({ color: '#7c3aed' }); } catch {}
 });
 
 async function setupAutoSync() {
