@@ -1,5 +1,5 @@
 const OPTS_KEY = "options";
-const AI_OPTS_KEY = "ai_options"; // { api_key, prefill_category, prefill_tags, prefill_summary, prefill_reminder }
+const AI_OPTS_KEY = "ai_options"; // { api_key, prefill_title, prefill_category, prefill_priority, prefill_tags, prefill_summary }
 async function getLocal(key){ return (await chrome.storage.local.get([key]))[key]; }
 async function setLocal(key,val){ return chrome.storage.local.set({[key]:val}); }
 
@@ -19,10 +19,11 @@ document.getElementById('saveBtn').onclick = async () => {
     const aiKey = (document.getElementById('aiApiKey')?.value || '').trim();
     const aiPrefill = {
       api_key: aiKey,
+      prefill_title: !!document.getElementById('aiPrefillTitle')?.checked,
       prefill_category: !!document.getElementById('aiPrefillCategory')?.checked,
+      prefill_priority: !!document.getElementById('aiPrefillPriority')?.checked,
       prefill_tags: !!document.getElementById('aiPrefillTags')?.checked,
-      prefill_summary: !!document.getElementById('aiPrefillSummary')?.checked,
-      prefill_reminder: !!document.getElementById('aiPrefillReminder')?.checked
+      prefill_summary: !!document.getElementById('aiPrefillSummary')?.checked
     };
     
     // Validation
@@ -280,8 +281,9 @@ Need more help? Check the SETUP_GUIDE.md file in your extension folder.`;
   const setIf = (id,val)=>{ const el = document.getElementById(id); if (el!=null) el.value = val; };
   const setCk = (id,val)=>{ const el = document.getElementById(id); if (el!=null) el.checked = !!val; };
   setIf('aiApiKey', ai.api_key || '');
+  setCk('aiPrefillTitle', ai.prefill_title);
   setCk('aiPrefillCategory', ai.prefill_category);
+  setCk('aiPrefillPriority', ai.prefill_priority);
   setCk('aiPrefillTags', ai.prefill_tags);
   setCk('aiPrefillSummary', ai.prefill_summary);
-  setCk('aiPrefillReminder', ai.prefill_reminder);
 })();

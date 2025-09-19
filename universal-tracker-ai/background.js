@@ -460,7 +460,9 @@ async function rescheduleReminders() {
 }
 
 // ===== AI integration (prefill-only) =====
-const AI_OPTS_KEY = "ai_options"; // { api_key, prefill_category, prefill_tags, prefill_summary, prefill_reminder }
+const AI_OPTS_KEY = "ai_options"; // { api_key, prefill_title, prefill_category, prefill_priority, prefill_tags, prefill_summary }
+const AI_CATEGORY_OPTIONS = ["Movie","TV","Trailer","Video","Blog","Podcast","Book","Course","Game","Other"];
+const AI_PRIORITY_OPTIONS = ["low","medium","high"];
 
 function withTimeout(promise, ms){
   return new Promise((resolve, reject) => {
@@ -472,12 +474,29 @@ function withTimeout(promise, ms){
 async function fetchAISuggestions(meta){
   const opts = (await getLocal(AI_OPTS_KEY)) || {};
   if (!opts.api_key) throw new Error('Missing API key');
-  // Keep payload minimal
   const payload = {
     contents: [{
       role: 'user',
       parts: [{
-        text: `Given this page metadata, suggest JSON: {\n  "category": one of ["Movie","TV","Trailer","Video","Blog","Podcast","Book","Course","Game","Other"],\n  "tags": array of 3-8 short lowercase tags,\n  "summary": <= 300 chars helpful notes.\n}\nMetadata:\nTitle: ${meta.title}\nHost: ${meta.siteName}\nURL: ${meta.rawUrl}\nDescription: ${meta.description || ''}`
+        text: `Return strict JSON with keys:
+{
+  "title": string,
+  "category": string,
+  "priority": string,
+  "tags": array,
+  "summary": string
+}
+Rules:
+- Title: remove leading counters (e.g. "(21)") and trim platform suffixes; keep the primary title.
+- Category: choose one of ["Movie","TV","Trailer","Video","Blog","Podcast","Book","Course","Game","Other"].
+- Priority: choose one of ["high","medium","low"]; high = urgent releases or trending, low = background/reference items.
+- Tags: up to 3 lowercase keywords, most relevant first, no duplicates.
+- Summary: 1-2 complete sentences, <=280 characters, end with punctuation, never cut mid-sentence.
+Metadata:
+Title: ${meta.title}
+Host: ${meta.siteName}
+URL: ${meta.rawUrl}
+Description: ${meta.description || ''}`
       }]
     }],
     generationConfig: {
@@ -493,15 +512,35 @@ async function fetchAISuggestions(meta){
   }), 6000);
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
   const data = await resp.json();
-  // Gemini JSON result is in candidates[0].content.parts[0].text
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const textResp = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   let parsed;
-  try { parsed = JSON.parse(text); } catch { throw new Error('Bad AI JSON'); }
-  const category = typeof parsed.category === 'string' ? parsed.category : undefined;
-  const tags = Array.isArray(parsed.tags) ? parsed.tags.map(x=>String(x).trim()).filter(Boolean) : [];
-  const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
-  return { category, tags, summary };
+  try { parsed = JSON.parse(textResp); } catch { throw new Error('Bad AI JSON'); }
+  let title = typeof parsed.title === 'string' ? parsed.title.trim() : '';
+  title = title.replace(/^\(\d+\)\s*/, '').trim();
+  if (!title && typeof meta.title === 'string') title = String(meta.title).trim();
+  const rawCategory = typeof parsed.category === 'string' ? parsed.category.trim() : '';
+  const category = rawCategory ? AI_CATEGORY_OPTIONS.find(opt => opt.toLowerCase() === rawCategory.toLowerCase()) : undefined;
+  const rawPriority = typeof parsed.priority === 'string' ? parsed.priority.trim().toLowerCase() : '';
+  const priority = rawPriority && AI_PRIORITY_OPTIONS.includes(rawPriority) ? rawPriority : undefined;
+  let tags = Array.isArray(parsed.tags) ? parsed.tags : [];
+  tags = Array.from(new Set(tags.map(x => String(x).trim().toLowerCase()).filter(Boolean))).slice(0, 3);
+  let summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
+  summary = summary.replace(/\s+/g, ' ').trim();
+  if (summary.length > 300) {
+    const slice = summary.slice(0, 300);
+    const lastSentenceEnd = Math.max(slice.lastIndexOf('.'), slice.lastIndexOf('!'), slice.lastIndexOf('?'));
+    if (lastSentenceEnd >= 200) {
+      summary = slice.slice(0, lastSentenceEnd + 1).trim();
+    } else {
+      summary = slice.trim();
+    }
+  }
+  if (summary.length > 300) summary = summary.slice(0, 300).trim();
+  if (summary && !/[.!?]$/.test(summary)) summary = summary + '.';
+  if (summary.length > 300) summary = summary.slice(0, 300).trim();
+  return { title, category, priority, tags, summary };
 }
+
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === 'AI_SUGGEST'){

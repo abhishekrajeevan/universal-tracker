@@ -909,7 +909,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (editingItemId) return;
     const ai = await chrome.storage.local.get(['ai_options']);
     const cfg = ai['ai_options'] || {};
-    const want = cfg.api_key && (cfg.prefill_category || cfg.prefill_tags || cfg.prefill_summary || cfg.prefill_reminder);
+    const want = cfg.api_key && (cfg.prefill_title || cfg.prefill_category || cfg.prefill_priority || cfg.prefill_tags || cfg.prefill_summary);
     if (!want) return;
     const meta = await getMetadata();
     const resp = await new Promise((resolve,reject)=>{
@@ -920,31 +920,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     if (!(resp && resp.success && resp.suggestions)) return;
     const s = resp.suggestions;
+    // Title
+    if (cfg.prefill_title) {
+      const input = document.getElementById('title');
+      if (input) {
+        const suggestionTitle = typeof s.title === 'string' ? s.title.trim() : '';
+        const current = (input.value || '').trim();
+        const original = (meta?.title || '').trim();
+        if (suggestionTitle && (!current || current === original)) {
+          input.value = suggestionTitle;
+        }
+      }
+    }
     // Category
     if (cfg.prefill_category) {
       const sel = document.getElementById('category');
-      if (sel && (!sel.value || sel.value==='Other')){
-        if (s.category && sel.querySelector(`option[value="${s.category}"]`)) sel.value = s.category;
+      if (sel) {
+        const allowed = ['Movie','TV','Trailer','Video','Blog','Podcast','Book','Course','Game','Other'];
+        if (allowed.includes(s.category) && (!sel.value || sel.value==='Other')){
+          if (sel.querySelector(`option[value="${s.category}"]`)) sel.value = s.category;
+        }
+      }
+    }
+    // Priority
+    if (cfg.prefill_priority) {
+      const sel = document.getElementById('priority');
+      const suggestion = (s.priority || '').toLowerCase();
+      if (sel && ['low','medium','high'].includes(suggestion)) {
+        const current = (sel.value || '').toLowerCase();
+        if (!current || current === 'medium') sel.value = suggestion;
       }
     }
     // Tags
     if (cfg.prefill_tags) {
       const t = document.getElementById('tags');
-      if (t && !t.value.trim() && Array.isArray(s.tags) && s.tags.length){ t.value = s.tags.join(', '); }
+      if (t && !t.value.trim() && Array.isArray(s.tags) && s.tags.length){
+        const cleaned = Array.from(new Set(s.tags.map(x => String(x).trim().toLowerCase()).filter(Boolean))).slice(0,3);
+        if (cleaned.length) t.value = cleaned.join(', ');
+      }
     }
     // Summary
     if (cfg.prefill_summary) {
       const n = document.getElementById('notes');
       if (n && !n.value.trim() && s.summary){ n.value = s.summary; }
-    }
-    // Reminder suggestion (rule-based)
-    if (cfg.prefill_reminder) {
-      const enabled = document.getElementById('reminderEnabled');
-      const dt = document.getElementById('reminderTime');
-      if (enabled && dt && !enabled.checked && !dt.value){
-        const when = suggestReminderForPriority(document.getElementById('priority').value || 'medium');
-        if (when){ enabled.checked = true; document.getElementById('reminderDateTime').style.display='block'; dt.value = toLocalDatetimeInput(when); }
-      }
     }
   } catch {}
 });
