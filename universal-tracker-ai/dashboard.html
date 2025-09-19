@@ -1,0 +1,184 @@
+﻿<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Universal Tracker AI â€” Dashboard</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: #f6f7fb;
+        color: #1f2937;
+      }
+      .topbar {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: #fff;
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .title { font-size: 18px; font-weight: 700; }
+      .actions { display: flex; gap: 8px; align-items: center; }
+      .btn {
+        padding: 8px 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600;
+      }
+      .btn-primary { background: #fff; color: #4f46e5; }
+      .btn-secondary { background: rgba(255,255,255,0.15); color: #fff; }
+      .container { padding: 20px; max-width: 1000px; margin: 0 auto; }
+      .filters { display: grid; grid-template-columns: 1fr 140px 170px 120px 180px 1fr; gap: 12px; margin-bottom: 16px; }
+      .filters input, .filters select {
+        width: 100%; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px; background: #fff;
+      }
+      .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+      .chip { background: #eef2ff; color: #4338ca; padding: 6px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; }
+      .chip.selected { background:#4338ca; color:#fff; box-shadow:0 1px 2px rgba(0,0,0,.1); }
+      .list { display: grid; gap: 12px; }
+      .item { background:#fff; border:1px solid #e5e7eb; border-radius: 12px; padding: 14px; }
+      .item-title { font-weight: 700; font-size: 15px; display:flex; align-items:center; gap:8px; }
+      .meta { margin-top:6px; color:#6b7280; font-size:12px; display:flex; gap:10px; flex-wrap:wrap; }
+      .item-actions { margin-top:10px; display:flex; gap:8px; flex-wrap: wrap; }
+      .pill { padding: 2px 8px; border-radius: 999px; font-size:11px; font-weight:700; }
+      .todo { background:#fef3c7; color:#92400e; }
+            .dup { background:#fde68a; color:#92400e; }
+      .notes { margin-top:8px; font-size:12px; color:#374151; background:#f9fafb; border:1px solid #eef2f7; padding:8px; border-radius:8px; white-space:pre-wrap; }
+      .prio-low { background:#e5e7eb; color:#374151; }
+      .prio-medium { background:#dbeafe; color:#1d4ed8; }
+      .prio-high { background:#fee2e2; color:#991b1b; }
+      .link { color:#4f46e5; text-decoration:none; font-weight:600; }
+      .empty { text-align:center; padding: 40px; color:#6b7280; }
+
+      /* Modern action buttons */
+      .action-btn { 
+        padding: 8px 12px; border-radius: 10px; border: 1px solid #e5e7eb; background:#fff; color:#111827; 
+        cursor:pointer; font-weight:600; transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+      }
+      .action-btn:hover { background:#f9fafb; border-color:#d1d5db; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+      .action-btn.solid { background: linear-gradient(135deg, #6366f1, #7c3aed); color:#fff; border-color: transparent; }
+      .action-btn.solid:hover { filter: brightness(0.98); }
+      .action-btn.danger { border-color:#fecaca; color:#991b1b; background:#fff; }
+      .action-btn.danger:hover { background:#fff1f2; border-color:#fca5a5; }
+
+      /* Sync loading indicator */
+      .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.6); border-top-color: #fff; border-radius: 50%; display:inline-block; animation: spin 0.8s linear infinite; vertical-align: -2px; }
+      .spinner-dark { border-color: rgba(79,70,229,0.25); border-top-color:#4f46e5; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .hidden { display:none; }
+
+      /* Responsive: fall back to 2 rows if narrow */
+      @media (max-width: 900px) {
+        .filters { grid-template-columns: 1fr 1fr; }
+      }
+
+      /* Compact mode */
+      body.compact .container { padding: 14px; }
+      body.compact .filters { gap: 8px; grid-template-columns: 1fr 110px 130px 100px 140px 1fr; }
+      body.compact .filters input, 
+      body.compact .filters select { padding: 10px 12px; border-radius: 8px; }
+      body.compact .item { padding: 10px; border-radius: 10px; }
+      body.compact .item-title { font-size: 14px; }
+      body.compact .meta { font-size: 11px; }
+      body.compact .chip { padding: 4px 8px; font-size: 11px; }
+      body.compact .action-btn { padding: 6px 10px; border-radius: 8px; }
+      /* Modal */
+      .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:9999}
+      .modal{background:#fff;border-radius:14px;box-shadow:0 20px 40px rgba(0,0,0,.25);width:92%;max-width:520px}
+      .modal header{padding:12px 16px;border-bottom:1px solid #e5e7eb;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+      .modal .body{padding:14px 16px;font-size:13px;color:#374151}
+      .modal .footer{padding:12px 16px;border-top:1px solid #e5e7eb;text-align:right}
+      .modal input, .modal textarea, .modal select{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;margin-top:6px}
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="title">Universal Tracker AI â€” All Items</div>
+      <div class="actions">
+        <button id="syncBtn" class="btn btn-primary"><span id="syncSpinner" class="spinner-dark spinner hidden" aria-hidden="true"></span><span id="syncText" style="margin-left:6px;">Sync Now</span></button>
+        <button id="exportBtn" class="btn btn-secondary">Export</button>
+        <button id="importBtn" class="btn btn-secondary">Import</button>
+        <button id="statsBtn" class="btn btn-secondary">Stats</button>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:8px;font-weight:600;">
+          <input type="checkbox" id="compactToggle" /> Compact
+        </label>
+        <button id="resetFilters" class="btn btn-secondary" title="Reset filters">Reset</button>
+      </div>
+    </div>
+    <div class="container">
+      <div class="filters">
+        <input id="search" type="text" placeholder="Search title, notes, tags..." />
+        <select id="status">
+          <option value="">All Status</option>
+          <option value="todo">To Do</option>
+          <option value="done">Done</option>
+        </select>
+        <select id="category">
+          <option value="">All Categories</option>
+          <option>Movie</option>
+          <option>TV</option>
+          <option>Trailer</option>
+          <option>Video</option>
+          <option>Blog</option>
+          <option>Podcast</option>
+          <option>Book</option>
+          <option>Course</option>
+          <option>Game</option>
+          <option>Other</option>
+        </select>
+        <select id="priority">
+          <option value="">All Priority</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select id="sort">
+          <option value="updated_desc">Sort: Updated (newest)</option>
+          <option value="updated_asc">Updated (oldest)</option>
+          <option value="created_desc">Created (newest)</option>
+          <option value="created_asc">Created (oldest)</option>
+          <option value="priority_desc">Priority (high â†’ low)</option>
+          <option value="priority_asc">Priority (low â†’ high)</option>
+        </select>
+        <input id="tags" type="text" placeholder="Tags (comma-separated)" />
+      </div>
+      <div id="tagChips" class="chips"></div>
+      <div id="count" style="margin-bottom:6px; color:#6b7280; font-size:12px;"></div>
+      <div id="statsbar" style="margin-bottom:10px; color:#374151; font-weight:600; font-size:12px;"></div>
+      <div id="list" class="list"></div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay" role="dialog" aria-modal="true">
+      <div class="modal">
+        <header>
+          <span>Edit Item</span>
+          <button id="editClose" class="btn btn-secondary btn-small">Close</button>
+        </header>
+        <div class="body">
+          <label>Title<input id="editTitle" type="text"></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+            <label>Category<select id="editCategory">
+              <option>Movie</option><option>TV</option><option>Trailer</option><option>Video</option><option>Blog</option><option>Podcast</option><option>Book</option><option>Course</option><option>Game</option><option>Other</option>
+            </select></label>
+            <label>Priority<select id="editPriority">
+              <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
+            </select></label>
+          </div>
+          <label style="margin-top:8px;">Tags (comma-separated)<input id="editTags" type="text"></label>
+          <label style="margin-top:8px;">Notes<textarea id="editNotes" rows="4"></textarea></label>
+          <label style="margin-top:8px;">Status<select id="editStatus"><option value="todo">To Do</option><option value="done">Done</option></select></label>
+        </div>
+        <div class="footer">
+          <button id="editSave" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="shared/utils.js"></script>
+    <script src="shared/schema.js"></script>
+    <script src="shared/adapters.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+  </html>
+

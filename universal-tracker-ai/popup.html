@@ -1,0 +1,546 @@
+﻿<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Universal Tracker AI</title>
+    <style>
+      * { box-sizing: border-box; }
+      
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        margin: 0; 
+        padding: 16px; 
+        width: 400px; 
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #2d3748;
+        min-height: 500px;
+      }
+      
+      .container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+      }
+      
+      .header {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+      
+      .header h1 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      
+      .header-icon {
+        width: 24px;
+        height: 24px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+      }
+      
+      .content {
+        padding: 20px;
+      }
+      
+      .page-meta { display: none; }
+      
+      .page-meta::before {
+        content: "ðŸŒ";
+        font-size: 16px;
+      }
+      
+      .form-group {
+        margin-bottom: 16px;
+      }
+      
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+      }
+      
+      input[type="text"], input[type="datetime-local"], textarea, select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background: #fafafa;
+      }
+      
+      input[type="text"]:focus, input[type="datetime-local"]:focus, textarea:focus, select:focus {
+        outline: none;
+        border-color: #4f46e5;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+      
+      textarea {
+        min-height: 60px;
+        resize: vertical;
+        font-family: inherit;
+      }
+      
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      
+      .tags-input-container {
+        position: relative;
+      }
+      
+      .tags-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-top: none;
+        border-radius: 0 0 12px 12px;
+        max-height: 120px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+      }
+      
+      .tag-suggestion {
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 13px;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background-color 0.2s ease;
+      }
+      
+      .tag-suggestion:hover, .tag-suggestion.selected {
+        background: #f8fafc;
+      }
+      
+      .tag-suggestion:last-child {
+        border-bottom: none;
+      }
+      
+      .btn {
+        padding: 12px 20px;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      
+      .btn-primary {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.3);
+        width: 100%;
+      }
+      
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.4);
+      }
+      
+      .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+      }
+      
+      .btn-secondary:hover {
+        background: #e2e8f0;
+        transform: translateY(-1px);
+      }
+      
+      .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 8px;
+      }
+      
+      .footer {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 16px 20px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+      }
+      
+      .footer-links { display: none; }
+
+      .open-all-row { display: flex; }
+      .open-all-row .btn { width: 100%; }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      
+      .connection-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        margin-bottom: 8px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+      }
+      
+      .status-indicator {
+        font-size: 10px;
+      }
+      
+      .status-text {
+        color: #64748b;
+        font-weight: 500;
+      }
+      
+      .connection-status.connected {
+        background: #d1fae5;
+        border-color: #a7f3d0;
+      }
+      
+      .connection-status.connected .status-text {
+        color: #065f46;
+      }
+      
+      .connection-status.disconnected {
+        background: #fee2e2;
+        border-color: #fca5a5;
+      }
+      
+      .connection-status.disconnected .status-text {
+        color: #991b1b;
+      }
+      
+      .link {
+        color: #4f46e5;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        transition: color 0.2s ease;
+      }
+      
+      /* Compact mode */
+      body.compact .header { padding: 14px; }
+      body.compact .content { padding: 14px; }
+      body.compact input[type="text"], body.compact input[type="datetime-local"], body.compact textarea, body.compact select { padding: 10px 12px; border-radius: 10px; font-size: 13px; }
+      body.compact .form-group { margin-bottom: 12px; }
+      body.compact textarea { min-height: 48px; }
+      body.compact .btn { padding: 10px 16px; }
+      body.compact .footer { padding: 12px 16px; gap: 8px; }
+      
+      .link:hover {
+        color: #7c3aed;
+      }
+      
+      .list {
+        max-height: 350px;
+        overflow-y: auto;
+        margin-top: 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+      }
+
+      /* Modal */
+      .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:9999}
+      .modal{background:#fff;border-radius:14px;box-shadow:0 20px 40px rgba(0,0,0,.25);width:86%;max-width:360px}
+      .modal header{padding:12px 16px;border-bottom:1px solid #e5e7eb;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+      .modal .body{padding:14px 16px;font-size:13px;color:#374151}
+      .modal .footer{padding:12px 16px;border-top:1px solid #e5e7eb;text-align:right}
+      
+      .list::-webkit-scrollbar {
+        width: 6px;
+      }
+      
+      .list::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+      
+      .list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+      
+      .item {
+        padding: 16px;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background-color 0.2s ease;
+      }
+      
+      .item:last-child {
+        border-bottom: none;
+      }
+      
+      .item:hover {
+        background: #f8fafc;
+      }
+      
+      .item-title {
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .item-meta {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      
+      .item-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      
+      .status-pill {
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .status-todo {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      
+      .status-done {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      
+      .reminder-pill {
+        background: #fef3c7;
+        color: #92400e;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-weight: 500;
+      }
+      
+      .reminder-active {
+        background: #ddd6fe;
+        color: #5b21b6;
+      }
+      
+      .category-icon {
+        width: 14px;
+        height: 14px;
+        display: inline-block;
+        text-align: center;
+        font-size: 11px;
+      }
+      
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        color: #64748b;
+      }
+      
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #64748b;
+      }
+      
+      .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+        opacity: 0.5;
+      }
+      
+      .edit-mode {
+        background: #fef3c7;
+        border: 2px solid #fbbf24;
+      }
+      
+      .edit-indicator {
+        background: #f59e0b;
+        color: white;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-weight: 600;
+        margin-left: auto;
+      }
+
+      .reminder-section {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+
+      .reminder-section label {
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .reminder-checkbox {
+        width: auto !important;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>
+          <div class="header-icon">ðŸ“š</div>
+          Universal Tracker AI
+        </h1>
+      </div>
+      
+      <div class="content">
+        <div class="page-meta" id="pageMeta">Capturing current tabâ€¦</div>
+
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="title" placeholder="Enter a title..." />
+          <div class="edit-indicator" id="editIndicator" style="display: none;">Editing Item</div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Category</label>
+            <select id="category">
+              <option value="Movie">ðŸŽ¬ Movie</option>
+              <option value="TV">ðŸ“º TV</option>
+              <option value="Trailer">ðŸŽ­ Trailer</option>
+              <option value="Video">ðŸŽ¥ Video</option>
+              <option value="Blog">ðŸ“ Blog</option>
+              <option value="Podcast">ðŸŽ§ Podcast</option>
+              <option value="Book">ðŸ“– Book</option>
+              <option value="Course">ðŸŽ“ Course</option>
+              <option value="Game">ðŸŽ® Game</option>
+              <option value="Other">ðŸ“„ Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Priority</label>
+            <select id="priority">
+              <option value="low">ðŸ”µ Low</option>
+              <option value="medium" selected>ðŸŸ¡ Medium</option>
+              <option value="high">ðŸ”´ High</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tags (comma-separated)</label>
+          <div class="tags-input-container">
+            <input type="text" id="tags" placeholder="netflix, friend recommended, action" autocomplete="off" />
+            <div class="tags-suggestions" id="tagsSuggestions"></div>
+          </div>
+        </div>
+
+        <div class="reminder-section">
+          <label>
+            <input type="checkbox" id="reminderEnabled" class="reminder-checkbox">
+            â° Set Reminder
+          </label>
+          <div id="reminderDateTime" style="display: none;">
+            <input type="datetime-local" id="reminderTime" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="notes" placeholder="Add your thoughts, ratings, or any additional notes..."></textarea>
+        </div>
+
+        <button id="saveBtn" class="btn btn-primary">
+          <span id="saveBtnIcon">ðŸ’¾</span>
+          <span id="saveBtnText">Save Item</span>
+        </button>
+      </div>
+
+      <div class="footer">
+        <div class="connection-status" id="connectionStatus">
+          <span class="status-indicator" id="statusIndicator">âšª</span>
+          <span class="status-text" id="statusText">Checking connection...</span>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#475569;">
+          <input type="checkbox" id="compactToggle"/> Compact mode
+        </label>
+        <div class="open-all-row">
+          <button class="btn btn-secondary" id="openDashboard">Open All Items</button>
+        </div>
+        <div class="toolbar">
+          <a class="link" id="syncBtn" href="#">Sync Now</a>
+          <a class="link" id="exportBtn" href="#">Export</a>
+          <a class="link" id="importBtn" href="#">Import</a>
+          <a class="link" id="archiveBtn" href="#">Archive</a>
+          <a class="link" id="statsBtn" href="#">View Stats</a>
+        </div>
+      </div>
+
+      <div class="list" id="list"></div>
+      
+      <!-- Stats Modal -->
+      <div id="statsModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
+        <div class="modal">
+          <header>
+            <span id="statsTitle">Storage Statistics</span>
+            <button id="statsClose" class="btn btn-small btn-secondary">Close</button>
+          </header>
+          <div class="body" id="statsContent">Loadingâ€¦</div>
+          <div class="footer">
+            <button id="statsClose2" class="btn btn-small btn-secondary">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="shared/utils.js"></script>
+    <script src="shared/schema.js"></script>
+    <script src="shared/adapters.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
+
+
